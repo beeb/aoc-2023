@@ -1,8 +1,8 @@
 [package]
-name = "aoc_202x"
+name = "aoc_2023"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your@email.com>"]
+authors = ["Valentin Bersier <hi@beeb.li>"]
 
 [dependencies]
 chrono = "0.4"

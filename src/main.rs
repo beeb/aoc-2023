@@ -8,7 +8,7 @@ use days::*;
 mod days;
 mod parser;
 
-const YEAR: usize = 2022;
+const YEAR: usize = 2023;
 
 #[derive(Parser)]
 #[command(author, version)]
@@ -146,6 +146,7 @@ fn download_all_input() {
 fn download_input(day: usize) {
     // Read session cookie from .session file
     let session = fs::read_to_string(".session").expect("Could not find .session file");
+    let session = session.trim();
     let url = format!("https://adventofcode.com/{}/day/{}/input", YEAR, day);
     let client = reqwest::blocking::Client::new();
     let response = client

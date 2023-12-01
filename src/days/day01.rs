@@ -25,7 +25,7 @@ impl Day for Day01 {
             .map(|l| {
                 let digits: Vec<usize> = l
                     .chars()
-                    .filter_map(|character| match character {
+                    .filter_map(|char| match char {
                         ch if ch.is_ascii_digit() => Some(ch.to_digit(10).unwrap() as usize),
                         _ => None,
                     })

@@ -72,6 +72,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_part1() {
+        let input = r#"1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet"#;
+
+        let parsed = Day01::parse(input).unwrap().1;
+        assert_eq!(Day01::part_1(&parsed), 142);
+    }
+
+    #[test]
     fn test_part_2() {
         let input = r#"two1nine
 eightwothree

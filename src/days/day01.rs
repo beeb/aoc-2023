@@ -38,27 +38,31 @@ impl Day for Day01 {
 
     type Output2 = usize;
 
-    /// Part 2 took 0.8334ms
+    /// Part 2 took 0.4779ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input
             .iter()
             .map(|l| {
-                // To avoid replacing part of a previous/subsequent number, we re-include the number as a string form
-                let line = l
-                    .replace("one", "one1one")
-                    .replace("two", "two2two")
-                    .replace("three", "three3three")
-                    .replace("four", "four4four")
-                    .replace("five", "five5five")
-                    .replace("six", "six6six")
-                    .replace("seven", "seven7seven")
-                    .replace("eight", "eight8eight")
-                    .replace("nine", "nine9nine");
-                let digits: Vec<usize> = line
+                let digits: Vec<_> = l
                     .chars()
-                    .filter_map(|c| match c {
-                        c if c.is_ascii_digit() => Some(c.to_digit(10).unwrap() as usize),
-                        _ => None,
+                    .enumerate()
+                    .filter_map(|(i, c)| {
+                        if c.is_ascii_digit() {
+                            Some(c.to_digit(10).unwrap() as usize)
+                        } else {
+                            match &l[i..] {
+                                s if s.starts_with("one") => Some(1),
+                                s if s.starts_with("two") => Some(2),
+                                s if s.starts_with("three") => Some(3),
+                                s if s.starts_with("four") => Some(4),
+                                s if s.starts_with("five") => Some(5),
+                                s if s.starts_with("six") => Some(6),
+                                s if s.starts_with("seven") => Some(7),
+                                s if s.starts_with("eight") => Some(8),
+                                s if s.starts_with("nine") => Some(9),
+                                _ => None,
+                            }
+                        }
                     })
                     .collect();
                 digits.first().unwrap_or(&0) * 10 + digits.last().unwrap_or(&0)

@@ -77,10 +77,10 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        let input = r#"1abc2
+        let input = r"1abc2
 pqr3stu8vwx
 a1b2c3d4e5f
-treb7uchet"#;
+treb7uchet";
 
         let parsed = Day01::parse(input).unwrap().1;
         assert_eq!(Day01::part_1(&parsed), 142);
@@ -88,13 +88,13 @@ treb7uchet"#;
 
     #[test]
     fn test_part2() {
-        let input = r#"two1nine
+        let input = r"two1nine
 eightwothree
 abcone2threexyz
 xtwone3four
 4nineeightseven2
 zoneight234
-7pqrstsixteen"#;
+7pqrstsixteen";
 
         let parsed = Day01::parse(input).unwrap().1;
         assert_eq!(Day01::part_2(&parsed), 281);

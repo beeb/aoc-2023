@@ -87,7 +87,7 @@ treb7uchet"#;
     }
 
     #[test]
-    fn test_part_2() {
+    fn test_part2() {
         let input = r#"two1nine
 eightwothree
 abcone2threexyz

@@ -25,8 +25,8 @@ impl Day for Day01 {
             .map(|l| {
                 let digits: Vec<usize> = l
                     .chars()
-                    .filter_map(|c| match c {
-                        c if c.is_ascii_digit() => Some(c.to_digit(10).unwrap() as usize),
+                    .filter_map(|character| match character {
+                        ch if ch.is_ascii_digit() => Some(ch.to_digit(10).unwrap() as usize),
                         _ => None,
                     })
                     .collect();
@@ -42,15 +42,15 @@ impl Day for Day01 {
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input
             .iter()
-            .map(|l| {
-                let digits: Vec<_> = l
+            .map(|line| {
+                let digits: Vec<_> = line
                     .chars()
                     .enumerate()
-                    .filter_map(|(i, c)| {
-                        if c.is_ascii_digit() {
-                            Some(c.to_digit(10).unwrap() as usize)
+                    .filter_map(|(i, ch)| {
+                        if ch.is_ascii_digit() {
+                            Some(ch.to_digit(10).unwrap() as usize)
                         } else {
-                            match &l[i..] {
+                            match &line[i..] {
                                 s if s.starts_with("one") => Some(1),
                                 s if s.starts_with("two") => Some(2),
                                 s if s.starts_with("three") => Some(3),

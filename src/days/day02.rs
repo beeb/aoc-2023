@@ -58,10 +58,7 @@ fn parse_game(input: &str) -> IResult<&str, Game> {
             tag(": "),
             separated_list0(tag("; "), parse_game_round),
         )),
-        |(_, game_id, _, rounds)| Game {
-            id: game_id,
-            rounds,
-        },
+        |(_, id, _, rounds)| Game { id, rounds },
     )(input)
 }
 

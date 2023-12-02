@@ -29,45 +29,47 @@ pub struct GameRound {
     pub blue: u64,
 }
 
+fn parse_game_round(input: &str) -> IResult<&str, GameRound> {
+    map(
+        separated_list0(
+            tag(", "),
+            tuple((u64, space1, alt((tag("red"), tag("green"), tag("blue"))))),
+        ),
+        |cubes| {
+            let mut round = GameRound::default();
+            for (qty, _, color) in cubes {
+                match color {
+                    "red" => round.red = qty,
+                    "green" => round.green = qty,
+                    "blue" => round.blue = qty,
+                    _ => unreachable!("invalid color"),
+                }
+            }
+            round
+        },
+    )(input)
+}
+
+fn parse_game(input: &str) -> IResult<&str, Game> {
+    map(
+        tuple((
+            tag("Game "),
+            u64,
+            tag(": "),
+            separated_list0(tag("; "), parse_game_round),
+        )),
+        |(_, game_id, _, rounds)| Game {
+            id: game_id,
+            rounds,
+        },
+    )(input)
+}
+
 impl Day for Day02 {
     type Input = Vec<Game>;
 
     fn parse(input: &str) -> IResult<&str, Self::Input> {
-        separated_list0(
-            line_ending,
-            map(
-                tuple((
-                    tag("Game "),
-                    u64,
-                    tag(": "),
-                    separated_list0(
-                        tag("; "),
-                        map(
-                            separated_list0(
-                                tag(", "),
-                                tuple((u64, space1, alt((tag("red"), tag("green"), tag("blue"))))),
-                            ),
-                            |cubes| {
-                                let mut round = GameRound::default();
-                                for (qty, _, color) in cubes {
-                                    match color {
-                                        "red" => round.red = qty,
-                                        "green" => round.green = qty,
-                                        "blue" => round.blue = qty,
-                                        _ => unreachable!("invalid color"),
-                                    }
-                                }
-                                round
-                            },
-                        ),
-                    ),
-                )),
-                |(_, game_id, _, rounds)| Game {
-                    id: game_id,
-                    rounds,
-                },
-            ),
-        )(input)
+        separated_list0(line_ending, parse_game)(input)
     }
 
     type Output1 = u64;

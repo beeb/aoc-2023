@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use itertools::Itertools;
 use nom::{
     character::complete::{line_ending, not_line_ending},
     combinator::map,
@@ -144,7 +145,7 @@ fn adjascent_numbers(numbers: &HashMap<Point, usize>, star_pos: &Point) -> Optio
         }
     }
     if res.len() == 2 {
-        return Some((res[0], res[1]));
+        return res.into_iter().collect_tuple();
     }
     None
 }

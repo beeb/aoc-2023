@@ -144,10 +144,7 @@ fn adjascent_numbers(numbers: &HashMap<Point, usize>, star_pos: &Point) -> Optio
             }
         }
     }
-    if res.len() == 2 {
-        return res.into_iter().collect_tuple();
-    }
-    None
+    res.into_iter().collect_tuple()
 }
 
 impl Day for Day03 {

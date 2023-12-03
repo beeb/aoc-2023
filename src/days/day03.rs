@@ -18,13 +18,6 @@ pub struct Point {
     y: usize,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct NumberPos {
-    x_from: usize,
-    x_to: usize,
-    y: usize,
-}
-
 fn get_symbols(input: &[Vec<char>]) -> HashSet<Point> {
     input
         .iter()

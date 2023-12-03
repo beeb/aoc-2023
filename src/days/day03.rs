@@ -50,6 +50,7 @@ fn get_numbers(input: &[Vec<char>]) -> HashMap<Point, usize> {
         .flat_map(|(y, line)| {
             let mut numbers = Vec::new();
             let mut x = 0;
+            // custom iteration to be able to fast-forward past the current number being processed
             while x < line.len() {
                 let char = line[x];
                 if !char.is_ascii_digit() {

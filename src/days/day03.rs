@@ -144,7 +144,7 @@ fn adjascent_numbers(numbers: &HashMap<Point, usize>, star_pos: &Point) -> Optio
             }
         }
     }
-    res.into_iter().collect_tuple()
+    res.into_iter().collect_tuple() // only returns `Some((a, b))` if there are two elements exactly
 }
 
 impl Day for Day03 {

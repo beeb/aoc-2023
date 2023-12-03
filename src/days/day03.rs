@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use nom::{
@@ -25,7 +25,7 @@ pub struct NumberPos {
     y: usize,
 }
 
-fn get_symbols(input: &[Vec<char>]) -> HashMap<Point, char> {
+fn get_symbols(input: &[Vec<char>]) -> HashSet<Point> {
     input
         .iter()
         .enumerate()
@@ -36,7 +36,7 @@ fn get_symbols(input: &[Vec<char>]) -> HashMap<Point, char> {
                     if *char == '.' || char.is_ascii_digit() {
                         return None;
                     }
-                    Some((Point { x, y }, *char))
+                    Some(Point { x, y })
                 })
                 .collect::<Vec<_>>()
         })
@@ -101,7 +101,7 @@ fn get_stars(input: &[Vec<char>]) -> Vec<Point> {
 }
 
 fn adjascent_symbol(
-    symbols: &HashMap<Point, char>,
+    symbols: &HashSet<Point>,
     number_x: usize,
     number_y: usize,
     number_len: usize,
@@ -115,7 +115,7 @@ fn adjascent_symbol(
             if y == number_y && x >= number_x && x < number_x + number_len {
                 continue;
             }
-            if symbols.contains_key(&Point { x, y }) {
+            if symbols.contains(&Point { x, y }) {
                 return true;
             }
         }
@@ -160,7 +160,7 @@ impl Day for Day03 {
 
     type Output1 = usize;
 
-    /// Part 1 took 0.3709ms
+    /// Part 1 took 0.3694ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let symbols = get_symbols(input);
         input

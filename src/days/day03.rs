@@ -64,6 +64,7 @@ fn get_numbers(input: &[Vec<char>]) -> HashMap<Point, usize> {
                 let num: usize = number.parse::<usize>().unwrap();
                 numbers.push((Point { x, y }, num));
                 if numlen > 1 {
+                    // let's store the last position of the number too, for later checking if it's neighboring a star
                     numbers.push((
                         Point {
                             x: x + numlen - 1,
@@ -132,6 +133,9 @@ fn adjascent_numbers(numbers: &HashMap<Point, usize>, star_pos: &Point) -> Optio
                 continue;
             }
             if let Some(num) = numbers.get(&Point { x, y }) {
+                // Avoid adding the same number twice in case it's start and end positions are neighboring the star
+                // FIXME: in our case there aren't two separate numbers with the same value that are next to the same
+                // star, but we could miss one if that were the case
                 if res.contains(num) {
                     continue;
                 }

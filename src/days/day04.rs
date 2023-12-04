@@ -1,6 +1,6 @@
 use nom::{
     bytes::complete::tag,
-    character::complete::{line_ending, space1, u128, u64},
+    character::complete::{line_ending, space1, u128, u16},
     combinator::map,
     multi::{separated_list0, separated_list1},
     sequence::tuple,
@@ -13,7 +13,6 @@ pub struct Day04;
 
 #[derive(Debug)]
 pub struct Card {
-    pub id: u64,
     pub winning: u128,
     pub numbers: u128,
 }
@@ -32,7 +31,7 @@ fn parse_card(input: &str) -> IResult<&str, Card> {
         tuple((
             tag("Card"),
             space1,
-            u64,
+            u16,
             tag(":"),
             space1,
             parse_numbers_bitmap,
@@ -40,11 +39,7 @@ fn parse_card(input: &str) -> IResult<&str, Card> {
             space1,
             parse_numbers_bitmap,
         )),
-        |(_, _, id, _, _, winning, _, _, numbers)| Card {
-            id,
-            winning,
-            numbers,
-        },
+        |(_, _, _, _, _, winning, _, _, numbers)| Card { winning, numbers },
     )(input)
 }
 

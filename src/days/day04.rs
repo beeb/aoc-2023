@@ -57,14 +57,14 @@ impl Day for Day04 {
 
     type Output1 = usize;
 
-    /// Part 1 took 0.00308ms
+    /// Part 1 took 0.000976ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .iter()
             .map(|card| {
                 let intersection = (card.winning & card.numbers).count_ones();
                 match intersection {
-                    1.. => 2usize.pow(intersection - 1),
+                    1.. => 1 << (intersection - 1),
                     0 => 0,
                 }
             })

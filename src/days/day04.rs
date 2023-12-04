@@ -1,6 +1,6 @@
 use nom::{
     bytes::complete::tag,
-    character::complete::{line_ending, space1, u32, u64},
+    character::complete::{line_ending, space1, u128, u64},
     combinator::map,
     multi::{separated_list0, separated_list1},
     sequence::tuple,
@@ -19,10 +19,10 @@ pub struct Card {
 }
 
 fn parse_numbers_bitmap(input: &str) -> IResult<&str, u128> {
-    let (rest, numbers) = separated_list1(space1, u32)(input)?;
+    let (rest, numbers) = separated_list1(space1, u128)(input)?;
     let mut bitmap = 0u128;
     for number in numbers {
-        bitmap |= 1 << u128::from(number);
+        bitmap |= 1 << number;
     }
     Ok((rest, bitmap))
 }

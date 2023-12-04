@@ -13,10 +13,13 @@ pub struct Day04;
 
 #[derive(Debug)]
 pub struct Card {
+    /// Bitmap holding the set of winning numbers
     pub winning: u128,
+    /// Bitmap holding the set of numbers on the card
     pub numbers: u128,
 }
 
+/// Contruct a bitmap holding the set of all numbers in the input
 fn parse_numbers_bitmap(input: &str) -> IResult<&str, u128> {
     let (rest, numbers) = separated_list1(space1, u128)(input)?;
     let mut bitmap = 0u128;
@@ -57,9 +60,10 @@ impl Day for Day04 {
         input
             .iter()
             .map(|card| {
+                // number of items in the intersection of the two sets
                 let intersection = (card.winning & card.numbers).count_ones();
                 match intersection {
-                    1.. => 1 << (intersection - 1),
+                    1.. => 1 << (intersection - 1), // 2^(intersection - 1)
                     0 => 0,
                 }
             })
@@ -75,11 +79,12 @@ impl Day for Day04 {
             .iter()
             .map(|card| (card.winning & card.numbers).count_ones() as usize)
             .collect();
-        let mut cards = vec![1usize; matching.len()];
+        let mut cards = vec![1usize; matching.len()]; // we have one of each card initially
         let cards_len = cards.len();
         for i in 0..cards_len {
             let card_amount = cards[i];
             let matching_numbers = matching[i];
+            // add the number of new cards we win at each iteration
             for j in 1..=matching_numbers {
                 if i + j < cards_len {
                     cards[i + j] += card_amount;

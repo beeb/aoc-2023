@@ -17,13 +17,7 @@ pub struct Day05;
 #[derive(Debug, Clone)]
 pub struct Almanac {
     pub seeds: Vec<u64>,
-    pub seed_soil: MappingTable,
-    pub soil_fert: MappingTable,
-    pub fert_water: MappingTable,
-    pub water_light: MappingTable,
-    pub light_temp: MappingTable,
-    pub temp_humid: MappingTable,
-    pub humid_loc: MappingTable,
+    tables: Vec<MappingTable>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,13 +33,7 @@ pub struct Mapping {
 
 impl Almanac {
     fn location(&self, seed: u64) -> u64 {
-        let soil = self.seed_soil.dest(seed);
-        let fert = self.soil_fert.dest(soil);
-        let water = self.fert_water.dest(fert);
-        let light = self.water_light.dest(water);
-        let temp = self.light_temp.dest(light);
-        let humid = self.temp_humid.dest(temp);
-        self.humid_loc.dest(humid)
+        self.tables.iter().fold(seed, |acc, table| table.dest(acc))
     }
 
     fn seed_ranges(&self) -> Vec<Range<u64>> {
@@ -105,12 +93,11 @@ fn range_overlap(first: &Range<u64>, second: &Range<u64>) -> Option<Range<u64>> 
     }
 }
 
-fn compatible_mappings(all_mappings: &[Mapping], prev_mapping: &Mapping) -> Vec<Mapping> {
-    all_mappings
+fn compatible_mappings(input_mappings: &[Mapping], output_mapping: &Mapping) -> Vec<Mapping> {
+    input_mappings
         .iter()
-        .sorted_by(|&a, &b| a.dest.start.cmp(&b.dest.start))
         .filter_map(|m| {
-            let Some(overlap) = range_overlap(&prev_mapping.source, &m.dest) else {
+            let Some(overlap) = range_overlap(&output_mapping.source, &m.dest) else {
                 return None;
             };
             let offset = overlap.start - m.dest.start;
@@ -152,6 +139,7 @@ fn parse_mappings(input: &str) -> IResult<&str, Vec<Mapping>> {
                 })
                 .sorted_by(|a, b| a.dest.start.cmp(&b.dest.start))
                 .collect();
+            // add first identity map range if it doesn't start at 0
             if let Some(first) = mappings.front() {
                 if first.dest.start > 0 {
                     mappings.push_front(Mapping {
@@ -160,13 +148,18 @@ fn parse_mappings(input: &str) -> IResult<&str, Vec<Mapping>> {
                     });
                 }
             }
+            // add last identity map range up to u64::MAX
             if let Some(last) = mappings.back() {
                 mappings.push_back(Mapping {
                     source: last.dest.end..u64::MAX,
                     dest: last.dest.end..u64::MAX,
                 });
             }
-            mappings.into()
+            // sort so that the range with the lowest output (dest) values comes first.
+            mappings
+                .into_iter()
+                .sorted_by(|a, b| a.dest.start.cmp(&b.dest.start))
+                .collect()
         },
     )(input)
 }
@@ -183,13 +176,7 @@ impl Day for Day05 {
             )),
             |(seeds, _, mappings)| Almanac {
                 seeds,
-                seed_soil: mappings[0].clone().into(),
-                soil_fert: mappings[1].clone().into(),
-                fert_water: mappings[2].clone().into(),
-                water_light: mappings[3].clone().into(),
-                light_temp: mappings[4].clone().into(),
-                temp_humid: mappings[5].clone().into(),
-                humid_loc: mappings[6].clone().into(),
+                tables: mappings.iter().map(|m| m.clone().into()).collect(),
             },
         )(input)
     }
@@ -208,42 +195,38 @@ impl Day for Day05 {
 
     type Output2 = u64;
 
+    /// Part 2 took 220.46619ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
-        for loc_mapping in input
-            .humid_loc
+        // last mappings table
+        let output_table = input.tables.last().unwrap();
+
+        // stack for BFS, initialize with all the mapping ranges in the last table,
+        // sorted by ascending dest.start (lower location comes first)
+        let mut stack: VecDeque<(Mapping, usize)> = output_table
             .mappings
             .iter()
-            .sorted_by(|&a, &b| a.dest.start.cmp(&b.dest.start))
-        {
-            for humid_mapping in compatible_mappings(&input.temp_humid.mappings, loc_mapping) {
-                for temp_mapping in compatible_mappings(&input.light_temp.mappings, &humid_mapping)
-                {
-                    for light_mapping in
-                        compatible_mappings(&input.water_light.mappings, &temp_mapping)
-                    {
-                        for water_mapping in
-                            compatible_mappings(&input.fert_water.mappings, &light_mapping)
-                        {
-                            for fert_mapping in
-                                compatible_mappings(&input.soil_fert.mappings, &water_mapping)
-                            {
-                                for soil_mapping in
-                                    compatible_mappings(&input.seed_soil.mappings, &fert_mapping)
-                                {
-                                    let Some(seed_range) =
-                                        input.seed_ranges().iter().find_map(|seed_range| {
-                                            range_overlap(seed_range, &soil_mapping.source)
-                                        })
-                                    else {
-                                        continue;
-                                    };
-                                    return seed_range.map(|s| input.location(s)).min().unwrap();
-                                }
-                            }
-                        }
-                    }
-                }
+            .map(|m| (m.clone(), input.tables.len() - 1))
+            .collect();
+
+        while let Some((mapping, level)) = stack.pop_front() {
+            if level == 0 {
+                // we are at the seed-to-soil level, so let's check if there are compatible seed ranges
+                let Some(seed_range) = input
+                    .seed_ranges()
+                    .iter()
+                    .find_map(|seed_range| range_overlap(seed_range, &mapping.source))
+                else {
+                    // no compatible seed range, let's keep looking
+                    continue;
+                };
+                // we have a matching seed range, so we're done, let's find the lowest location
+                return seed_range.map(|s| input.location(s)).min().unwrap();
             }
+            // find all compatible mappings in the previous table and add them at the back of the stack
+            let input_table = &input.tables[level - 1];
+            compatible_mappings(&input_table.mappings, &mapping)
+                .into_iter()
+                .for_each(|m| stack.push_back((m, level - 1)));
         }
 
         panic!("Couldn't find a suitable seed");

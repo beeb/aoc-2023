@@ -195,12 +195,12 @@ impl Day for Day05 {
 
     type Output2 = u64;
 
-    /// Part 2 took 220.46619ms
+    /// Part 2 took 195.56049ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         // last mappings table
         let output_table = input.tables.last().unwrap();
 
-        // let's do a BFS (DFS would be more logical but is slower on my machine)
+        // let's do a DFS to quickly find a path that connects outputs to inputs
 
         // stack for BFS, initialize with all the mapping ranges in the last table,
         // sorted by ascending dest.start (lower location comes first)
@@ -224,11 +224,11 @@ impl Day for Day05 {
                 // we have a matching seed range, so we're done, let's find the lowest location
                 return seed_range.map(|s| input.location(s)).min().unwrap();
             }
-            // find all compatible mappings in the previous table and add them at the back of the stack
+            // find all compatible mappings in the previous table and add them at the front of the stack
             let input_table = &input.tables[level - 1];
             compatible_mappings(&input_table.mappings, &mapping)
                 .into_iter()
-                .for_each(|m| stack.push_back((m, level - 1)));
+                .for_each(|m| stack.push_front((m, level - 1)));
         }
 
         panic!("Couldn't find a suitable seed");

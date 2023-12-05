@@ -51,20 +51,25 @@ pub trait Day {
 
     #[allow(clippy::cast_precision_loss)]
     fn run_day(fp: &str) {
+        let before_parse = Instant::now();
         match Self::parse_file(fp) {
             Err(e) => println!("{e:?}"),
             Ok(input) => {
+                let parsing_elapsed = before_parse.elapsed().as_nanos() as f32 / 1e6;
                 let before1 = Instant::now();
                 println!("Part 1: {}", Self::part_1(&input));
                 println!(
-                    "Part 1 took {}ms",
-                    before1.elapsed().as_nanos() as f32 / 1e6
+                    "Part 1 took {}ms ({}ms with parsing)",
+                    before1.elapsed().as_nanos() as f32 / 1e6,
+                    before_parse.elapsed().as_nanos() as f32 / 1e6
                 );
                 let before2 = Instant::now();
                 println!("Part 2: {}", Self::part_2(&input));
+                let part2_elapsed = before2.elapsed().as_nanos() as f32 / 1e6;
                 println!(
-                    "Part 2 took {}ms",
-                    before2.elapsed().as_nanos() as f32 / 1e6
+                    "Part 2 took {}ms ({}ms with parsing)",
+                    part2_elapsed,
+                    part2_elapsed + parsing_elapsed
                 );
             }
         }

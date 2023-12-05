@@ -18,7 +18,7 @@ impl Day for Day01 {
 
     type Output1 = usize;
 
-    /// Part 1 took 0.0612ms
+    /// Part 1 took 0.049463ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .iter()
@@ -38,7 +38,7 @@ impl Day for Day01 {
 
     type Output2 = usize;
 
-    /// Part 2 took 0.1827ms
+    /// Part 2 took 0.164261ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input
             .iter()

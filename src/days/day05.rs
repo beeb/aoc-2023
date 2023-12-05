@@ -1,5 +1,6 @@
-use std::ops::Range;
+use std::{collections::VecDeque, ops::Range};
 
+use itertools::Itertools;
 use nom::{
     bytes::complete::tag,
     character::complete::{char, line_ending, not_line_ending, space1, u64},
@@ -46,6 +47,18 @@ impl Almanac {
         let humid = self.temp_humid.dest(temp);
         self.humid_loc.dest(humid)
     }
+
+    fn seed_ranges(&self) -> Vec<Range<u64>> {
+        self.seeds
+            .as_slice()
+            .chunks(2)
+            .filter_map(|i| {
+                i.iter()
+                    .collect_tuple()
+                    .map(|(start, len)| *start..*start + *len)
+            })
+            .collect()
+    }
 }
 
 impl MappingTable {
@@ -66,6 +79,51 @@ impl From<Vec<Mapping>> for MappingTable {
     }
 }
 
+/// Find the overlap between two ranges
+fn range_overlap(first: &Range<u64>, second: &Range<u64>) -> Option<Range<u64>> {
+    if first.end >= second.start && first.start <= second.end {
+        // some overlap
+        if first.start < second.start {
+            // either first is left or first fully contains second
+            if first.end > second.end {
+                // first fully contains second
+                Some(second.clone())
+            } else {
+                // first is left
+                Some(second.start..first.end)
+            }
+        } else if second.end > first.end {
+            // second fully contains first
+            Some(first.clone())
+        } else {
+            // second is left
+            Some(first.start..second.end)
+        }
+    } else {
+        // no overlap
+        None
+    }
+}
+
+fn next_mappings(next_mappings: &[Mapping], prev_mapping: &Mapping) -> Vec<Mapping> {
+    next_mappings
+        .iter()
+        .sorted_by(|&a, &b| a.dest.start.cmp(&b.dest.start))
+        .filter_map(|m| {
+            let Some(overlap) = range_overlap(&prev_mapping.source, &m.dest) else {
+                return None;
+            };
+            let offset = overlap.start - m.dest.start;
+            let len = overlap.end - overlap.start;
+            let source_start = m.source.start + offset;
+            Some(Mapping {
+                source: source_start..source_start + len,
+                dest: overlap,
+            })
+        })
+        .collect()
+}
+
 fn parse_seeds(input: &str) -> IResult<&str, Vec<u64>> {
     map(
         tuple((tag("seeds: "), separated_list0(space1, u64))),
@@ -81,7 +139,7 @@ fn parse_mappings(input: &str) -> IResult<&str, Vec<Mapping>> {
             separated_list1(line_ending, separated_list1(char(' '), u64)),
         ),
         |(_, items)| {
-            items
+            let mut mappings: VecDeque<Mapping> = items
                 .iter()
                 .map(|range_info| {
                     let source_start = range_info[1];
@@ -92,7 +150,23 @@ fn parse_mappings(input: &str) -> IResult<&str, Vec<Mapping>> {
                         dest: dest_start..dest_start + len,
                     }
                 })
-                .collect()
+                .sorted_by(|a, b| a.dest.start.cmp(&b.dest.start))
+                .collect();
+            if let Some(first) = mappings.front() {
+                if first.dest.start > 0 {
+                    mappings.push_front(Mapping {
+                        source: 0..first.dest.start,
+                        dest: 0..first.dest.start,
+                    });
+                }
+            }
+            if let Some(last) = mappings.back() {
+                mappings.push_back(Mapping {
+                    source: last.dest.end..u64::MAX,
+                    dest: last.dest.end..u64::MAX,
+                });
+            }
+            mappings.into()
         },
     )(input)
 }
@@ -134,7 +208,131 @@ impl Day for Day05 {
 
     type Output2 = u64;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        for loc_mapping in input
+            .humid_loc
+            .mappings
+            .iter()
+            .sorted_by(|&a, &b| a.dest.start.cmp(&b.dest.start))
+        {
+            for humid_mapping in next_mappings(&input.temp_humid.mappings, loc_mapping) {
+                for temp_mapping in next_mappings(&input.light_temp.mappings, &humid_mapping) {
+                    for light_mapping in next_mappings(&input.water_light.mappings, &temp_mapping) {
+                        for water_mapping in
+                            next_mappings(&input.fert_water.mappings, &light_mapping)
+                        {
+                            for fert_mapping in
+                                next_mappings(&input.soil_fert.mappings, &water_mapping)
+                            {
+                                for soil_mapping in
+                                    next_mappings(&input.seed_soil.mappings, &fert_mapping)
+                                {
+                                    let Some(seed_range) =
+                                        input.seed_ranges().iter().find_map(|seed_range| {
+                                            let Some(overlap) =
+                                                range_overlap(seed_range, &soil_mapping.source)
+                                            else {
+                                                return None;
+                                            };
+                                            Some(overlap)
+                                        })
+                                    else {
+                                        continue;
+                                    };
+                                    return seed_range.map(|s| input.location(s)).min().unwrap();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        panic!("Couldn't find a suitable seed");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1() {
+        let input = "seeds: 79 14 55 13
+
+seed-to-soil map:
+50 98 2
+52 50 48
+
+soil-to-fertilizer map:
+0 15 37
+37 52 2
+39 0 15
+
+fertilizer-to-water map:
+49 53 8
+0 11 42
+42 0 7
+57 7 4
+
+water-to-light map:
+88 18 7
+18 25 70
+
+light-to-temperature map:
+45 77 23
+81 45 19
+68 64 13
+
+temperature-to-humidity map:
+0 69 1
+1 0 69
+
+humidity-to-location map:
+60 56 37
+56 93 4";
+
+        let parsed = Day05::parse(input).unwrap().1;
+        assert_eq!(Day05::part_1(&parsed), 35);
+    }
+
+    #[test]
+    fn test_part2() {
+        let input = "seeds: 79 14 55 13
+
+seed-to-soil map:
+50 98 2
+52 50 48
+
+soil-to-fertilizer map:
+0 15 37
+37 52 2
+39 0 15
+
+fertilizer-to-water map:
+49 53 8
+0 11 42
+42 0 7
+57 7 4
+
+water-to-light map:
+88 18 7
+18 25 70
+
+light-to-temperature map:
+45 77 23
+81 45 19
+68 64 13
+
+temperature-to-humidity map:
+0 69 1
+1 0 69
+
+humidity-to-location map:
+60 56 37
+56 93 4";
+
+        let parsed = Day05::parse(input).unwrap().1;
+        assert_eq!(Day05::part_2(&parsed), 46);
     }
 }

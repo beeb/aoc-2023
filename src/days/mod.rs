@@ -43,25 +43,27 @@ pub trait Day {
 
     fn part_2(input: &Self::Input) -> Self::Output2;
 
-    fn parse_file(fp: &str) -> Result<Self::Input, MyErr> {
+    fn parse_file(fp: &str) -> Result<(Self::Input, f32), MyErr> {
         let input_string = read_to_string(fp)?;
+        let before_parse = Instant::now();
         let (_, input) = Self::parse(&input_string)?;
-        Ok(input)
+        #[allow(clippy::cast_precision_loss)]
+        let parsing_elapsed = before_parse.elapsed().as_nanos() as f32 / 1e6;
+        Ok((input, parsing_elapsed))
     }
 
     #[allow(clippy::cast_precision_loss)]
     fn run_day(fp: &str) {
-        let before_parse = Instant::now();
         match Self::parse_file(fp) {
             Err(e) => println!("{e:?}"),
-            Ok(input) => {
-                let parsing_elapsed = before_parse.elapsed().as_nanos() as f32 / 1e6;
+            Ok((input, parsing_elapsed)) => {
                 let before1 = Instant::now();
                 println!("Part 1: {}", Self::part_1(&input));
+                let part1_elapsed = before1.elapsed().as_nanos() as f32 / 1e6;
                 println!(
                     "Part 1 took {}ms ({}ms with parsing)",
-                    before1.elapsed().as_nanos() as f32 / 1e6,
-                    before_parse.elapsed().as_nanos() as f32 / 1e6
+                    part1_elapsed,
+                    part1_elapsed + parsing_elapsed
                 );
                 let before2 = Instant::now();
                 println!("Part 2: {}", Self::part_2(&input));

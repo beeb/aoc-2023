@@ -200,6 +200,8 @@ impl Day for Day05 {
         // last mappings table
         let output_table = input.tables.last().unwrap();
 
+        // let's do a BFS (DFS would be more logical but is slower on my machine)
+
         // stack for BFS, initialize with all the mapping ranges in the last table,
         // sorted by ascending dest.start (lower location comes first)
         let mut stack: VecDeque<(Mapping, usize)> = output_table

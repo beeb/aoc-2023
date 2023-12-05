@@ -1,6 +1,5 @@
 use crate::parser::MyErr;
 use crate::Instant;
-use human_repr::HumanDuration;
 use nom::IResult;
 use std::fmt::Display;
 use std::fs::read_to_string;
@@ -63,17 +62,15 @@ pub trait Day {
                 println!("Part 1: {}", Self::part_1(&input));
                 let part1_elapsed = before1.elapsed();
                 println!(
-                    "Part 1 took {} ({} with parsing)",
-                    part1_elapsed.human_duration(),
-                    (part1_elapsed + parsing_elapsed).human_duration()
+                    "Part 1 took {part1_elapsed:?} ({:?} with parsing)",
+                    part1_elapsed + parsing_elapsed
                 );
                 let before2 = Instant::now();
                 println!("Part 2: {}", Self::part_2(&input));
                 let part2_elapsed = before2.elapsed();
                 println!(
-                    "Part 2 took {} ({} with parsing)",
-                    part2_elapsed.human_duration(),
-                    (part2_elapsed + parsing_elapsed).human_duration()
+                    "Part 2 took {part2_elapsed:?} ({:?} with parsing)",
+                    part2_elapsed + parsing_elapsed
                 );
             }
         }

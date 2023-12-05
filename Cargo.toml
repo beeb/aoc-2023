@@ -7,7 +7,6 @@ authors = ["Valentin Bersier <hi@beeb.li>"]
 [dependencies]
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
-human-repr = "1"
 itertools = "0.12"
 nom = "7"
 reqwest = { version = "0.11", default-features = false, features = [

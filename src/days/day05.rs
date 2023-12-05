@@ -105,8 +105,8 @@ fn range_overlap(first: &Range<u64>, second: &Range<u64>) -> Option<Range<u64>> 
     }
 }
 
-fn next_mappings(next_mappings: &[Mapping], prev_mapping: &Mapping) -> Vec<Mapping> {
-    next_mappings
+fn compatible_mappings(all_mappings: &[Mapping], prev_mapping: &Mapping) -> Vec<Mapping> {
+    all_mappings
         .iter()
         .sorted_by(|&a, &b| a.dest.start.cmp(&b.dest.start))
         .filter_map(|m| {
@@ -215,26 +215,24 @@ impl Day for Day05 {
             .iter()
             .sorted_by(|&a, &b| a.dest.start.cmp(&b.dest.start))
         {
-            for humid_mapping in next_mappings(&input.temp_humid.mappings, loc_mapping) {
-                for temp_mapping in next_mappings(&input.light_temp.mappings, &humid_mapping) {
-                    for light_mapping in next_mappings(&input.water_light.mappings, &temp_mapping) {
+            for humid_mapping in compatible_mappings(&input.temp_humid.mappings, loc_mapping) {
+                for temp_mapping in compatible_mappings(&input.light_temp.mappings, &humid_mapping)
+                {
+                    for light_mapping in
+                        compatible_mappings(&input.water_light.mappings, &temp_mapping)
+                    {
                         for water_mapping in
-                            next_mappings(&input.fert_water.mappings, &light_mapping)
+                            compatible_mappings(&input.fert_water.mappings, &light_mapping)
                         {
                             for fert_mapping in
-                                next_mappings(&input.soil_fert.mappings, &water_mapping)
+                                compatible_mappings(&input.soil_fert.mappings, &water_mapping)
                             {
                                 for soil_mapping in
-                                    next_mappings(&input.seed_soil.mappings, &fert_mapping)
+                                    compatible_mappings(&input.seed_soil.mappings, &fert_mapping)
                                 {
                                     let Some(seed_range) =
                                         input.seed_ranges().iter().find_map(|seed_range| {
-                                            let Some(overlap) =
-                                                range_overlap(seed_range, &soil_mapping.source)
-                                            else {
-                                                return None;
-                                            };
-                                            Some(overlap)
+                                            range_overlap(seed_range, &soil_mapping.source)
                                         })
                                     else {
                                         continue;

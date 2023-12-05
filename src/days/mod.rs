@@ -1,8 +1,10 @@
 use crate::parser::MyErr;
 use crate::Instant;
+use human_repr::HumanDuration;
 use nom::IResult;
 use std::fmt::Display;
 use std::fs::read_to_string;
+use std::time::Duration;
 
 pub mod day01;
 pub mod day02;
@@ -43,12 +45,12 @@ pub trait Day {
 
     fn part_2(input: &Self::Input) -> Self::Output2;
 
-    fn parse_file(fp: &str) -> Result<(Self::Input, f32), MyErr> {
+    fn parse_file(fp: &str) -> Result<(Self::Input, Duration), MyErr> {
         let input_string = read_to_string(fp)?;
         let before_parse = Instant::now();
         let (_, input) = Self::parse(&input_string)?;
         #[allow(clippy::cast_precision_loss)]
-        let parsing_elapsed = before_parse.elapsed().as_nanos() as f32 / 1e6;
+        let parsing_elapsed = before_parse.elapsed();
         Ok((input, parsing_elapsed))
     }
 
@@ -59,19 +61,19 @@ pub trait Day {
             Ok((input, parsing_elapsed)) => {
                 let before1 = Instant::now();
                 println!("Part 1: {}", Self::part_1(&input));
-                let part1_elapsed = before1.elapsed().as_nanos() as f32 / 1e6;
+                let part1_elapsed = before1.elapsed();
                 println!(
-                    "Part 1 took {}ms ({}ms with parsing)",
-                    part1_elapsed,
-                    part1_elapsed + parsing_elapsed
+                    "Part 1 took {} ({} with parsing)",
+                    part1_elapsed.human_duration(),
+                    (part1_elapsed + parsing_elapsed).human_duration()
                 );
                 let before2 = Instant::now();
                 println!("Part 2: {}", Self::part_2(&input));
-                let part2_elapsed = before2.elapsed().as_nanos() as f32 / 1e6;
+                let part2_elapsed = before2.elapsed();
                 println!(
-                    "Part 2 took {}ms ({}ms with parsing)",
-                    part2_elapsed,
-                    part2_elapsed + parsing_elapsed
+                    "Part 2 took {} ({} with parsing)",
+                    part2_elapsed.human_duration(),
+                    (part2_elapsed + parsing_elapsed).human_duration()
                 );
             }
         }

@@ -93,6 +93,7 @@ fn range_overlap(first: &Range<u64>, second: &Range<u64>) -> Option<Range<u64>> 
     }
 }
 
+/// Find all input mappings that overlap with the desired output mapping
 fn compatible_mappings(input_mappings: &[Mapping], output_mapping: &Mapping) -> Vec<Mapping> {
     input_mappings
         .iter()

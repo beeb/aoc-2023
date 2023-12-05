@@ -203,7 +203,7 @@ impl Day for Day05 {
 
         // let's do a DFS to quickly find a path that connects outputs to inputs
 
-        // stack for BFS, initialize with all the mapping ranges in the last table,
+        // stack for DFS, initialize with all the mapping ranges in the last table,
         // sorted by ascending dest.start (lower location comes first)
         let mut stack: VecDeque<(Mapping, usize)> = output_table
             .mappings

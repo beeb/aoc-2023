@@ -83,6 +83,7 @@ impl Day for Day06 {
 
     type Output1 = u64;
 
+    /// Part 1 took 2.9µs (6.1µs with parsing)
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .iter()
@@ -92,6 +93,7 @@ impl Day for Day06 {
 
     type Output2 = u64;
 
+    /// took 1.7µs (4.9µs with parsing)
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let race = input
             .iter()

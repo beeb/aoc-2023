@@ -42,11 +42,11 @@ fn winning_interval(race: &Race) -> RangeInclusive<u64> {
     (low.ceil() as u64)..=(high.floor() as u64)
 }
 
+/// How many integer solutions there are in the range
 fn interval_length(i: RangeInclusive<u64>) -> u64 {
     i.end() - i.start() + 1
 }
 
-#[allow(clippy::cast_precision_loss)]
 fn parse_times(input: &str) -> IResult<&str, Vec<u64>> {
     map(
         tuple((tag("Time:"), space1, separated_list1(space1, u64))),
@@ -54,7 +54,6 @@ fn parse_times(input: &str) -> IResult<&str, Vec<u64>> {
     )(input)
 }
 
-#[allow(clippy::cast_precision_loss)]
 fn parse_distances(input: &str) -> IResult<&str, Vec<u64>> {
     map(
         tuple((tag("Distance:"), space1, separated_list1(space1, u64))),
@@ -95,17 +94,19 @@ impl Day for Day06 {
 
     /// took 1.7µs (4.9µs with parsing)
     fn part_2(input: &Self::Input) -> Self::Output2 {
-        let race = input
-            .iter()
-            .fold((String::new(), String::new()), |acc, race| {
-                (
-                    format!("{}{}", acc.0, race.total_time),
-                    format!("{}{}", acc.1, race.record_distance),
-                )
-            });
+        // collect the indididual numbers into a single number by concatenation
+        let (total_time, record_distance) =
+            input
+                .iter()
+                .fold((String::new(), String::new()), |acc, race| {
+                    (
+                        format!("{}{}", acc.0, race.total_time),
+                        format!("{}{}", acc.1, race.record_distance),
+                    )
+                });
         let race = Race {
-            total_time: race.0.parse().unwrap(),
-            record_distance: race.1.parse().unwrap(),
+            total_time: total_time.parse().unwrap(),
+            record_distance: record_distance.parse().unwrap(),
         };
         interval_length(winning_interval(&race))
     }

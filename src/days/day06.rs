@@ -33,10 +33,10 @@ fn winning_interval(race: &Race) -> RangeInclusive<u64> {
     let mut low = 0.5 * (t - sqrt);
     let mut high = 0.5 * (t + sqrt);
     // since we have to go strictly farther to win, in case of an integer bound we have to add/subtract one
-    if (low.ceil() - low).abs() <= f64::EPSILON {
+    if (low.trunc() - low).abs() <= f64::EPSILON {
         low += 0.1;
     }
-    if (high.floor() - high).abs() <= f64::EPSILON {
+    if (high.trunc() - high).abs() <= f64::EPSILON {
         high -= 0.1;
     }
     (low.ceil() as u64)..=(high.floor() as u64)

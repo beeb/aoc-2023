@@ -203,9 +203,7 @@ impl Day for Day03 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_part1() {
-        let input = "467..114..
+    const INPUT: &str = "467..114..
 ...*......
 ..35..633.
 ......#...
@@ -216,24 +214,15 @@ mod tests {
 ...$.*....
 .664.598..";
 
-        let parsed = Day03::parse(input).unwrap().1;
+    #[test]
+    fn test_part1() {
+        let parsed = Day03::parse(INPUT).unwrap().1;
         assert_eq!(Day03::part_1(&parsed), 4361);
     }
 
     #[test]
     fn test_part2() {
-        let input = "467..114..
-...*......
-..35..633.
-......#...
-617*......
-.....+.58.
-..592.....
-......755.
-...$.*....
-.664.598..";
-
-        let parsed = Day03::parse(input).unwrap().1;
+        let parsed = Day03::parse(INPUT).unwrap().1;
         assert_eq!(Day03::part_2(&parsed), 467_835);
     }
 }

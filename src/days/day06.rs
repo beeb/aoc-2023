@@ -116,21 +116,18 @@ impl Day for Day06 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_part1() {
-        let input = "Time:      7  15   30
+    const INPUT: &str = "Time:      7  15   30
 Distance:  9  40  200";
 
-        let parsed = Day06::parse(input).unwrap().1;
+    #[test]
+    fn test_part1() {
+        let parsed = Day06::parse(INPUT).unwrap().1;
         assert_eq!(Day06::part_1(&parsed), 288);
     }
 
     #[test]
     fn test_part2() {
-        let input = "Time:      7  15   30
-Distance:  9  40  200";
-
-        let parsed = Day06::parse(input).unwrap().1;
+        let parsed = Day06::parse(INPUT).unwrap().1;
         assert_eq!(Day06::part_2(&parsed), 71503);
     }
 }

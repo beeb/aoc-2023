@@ -100,8 +100,8 @@ impl Day for Day06 {
                 .iter()
                 .fold((String::new(), String::new()), |(acc_t, acc_r), race| {
                     (
-                        format!("{}{}", acc_t, race.total_time),
-                        format!("{}{}", acc_r, race.record_distance),
+                        format!("{acc_t}{}", race.total_time),
+                        format!("{acc_r}{}", race.record_distance),
                     )
                 });
         let race = Race {

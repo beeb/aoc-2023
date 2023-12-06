@@ -15,8 +15,8 @@ pub struct Day06;
 
 #[derive(Debug)]
 pub struct Race {
-    total_time: u64,
-    record_distance: u64,
+    pub total_time: u64,
+    pub record_distance: u64,
 }
 
 #[allow(

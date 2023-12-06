@@ -98,10 +98,10 @@ impl Day for Day06 {
         let (total_time, record_distance) =
             input
                 .iter()
-                .fold((String::new(), String::new()), |acc, race| {
+                .fold((String::new(), String::new()), |(acc_t, acc_r), race| {
                     (
-                        format!("{}{}", acc.0, race.total_time),
-                        format!("{}{}", acc.1, race.record_distance),
+                        format!("{}{}", acc_t, race.total_time),
+                        format!("{}{}", acc_r, race.record_distance),
                     )
                 });
         let race = Race {

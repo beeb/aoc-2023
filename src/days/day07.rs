@@ -68,21 +68,19 @@ impl Hand {
             .map(|(_, &count)| count) // only keep count
             .collect();
 
+        // qty of most common card
+        let first = counts.first().unwrap_or(&0);
         // qty of second most common card
         let second = counts.get(1).unwrap_or(&0);
 
         // check qty of most common card
-        match counts.first().unwrap() {
-            5 => Pattern::FiveKind,
-            4 => Pattern::FourKind,
-            3 => match second {
-                2 => Pattern::FullHouse,
-                _ => Pattern::ThreeKind,
-            },
-            2 => match second {
-                2 => Pattern::TwoPairs,
-                _ => Pattern::Pair,
-            },
+        match (first, second) {
+            (5, _) => Pattern::FiveKind,
+            (4, _) => Pattern::FourKind,
+            (3, 2) => Pattern::FullHouse,
+            (3, _) => Pattern::ThreeKind,
+            (2, 2) => Pattern::TwoPairs,
+            (2, _) => Pattern::Pair,
             _ => Pattern::HighCard,
         }
     }

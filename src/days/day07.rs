@@ -73,7 +73,6 @@ impl Hand {
         // qty of second most common card
         let second = counts.get(1).unwrap_or(&0);
 
-        // check qty of most common card
         match (first, second) {
             (5, _) => Pattern::FiveKind,
             (4, _) => Pattern::FourKind,

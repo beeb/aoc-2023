@@ -28,14 +28,10 @@ pub enum Card {
     Ace,
 }
 
-impl Card {
-    fn custom_cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self, other) {
-            (Self::Jack, _) => std::cmp::Ordering::Less,
-            (_, Self::Jack) => std::cmp::Ordering::Greater,
-            (a, b) => a.cmp(b),
-        }
-    }
+#[derive(Debug)]
+pub struct Hand {
+    pub cards: [Card; 5],
+    pub bid: u64,
 }
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
@@ -49,10 +45,16 @@ pub enum Pattern {
     FiveKind,
 }
 
-#[derive(Debug)]
-pub struct Hand {
-    pub cards: [Card; 5],
-    pub bid: u64,
+impl Card {
+    /// When the Jack is the lowest denomination, we use a custom ordering compared to the default enum ordering
+    fn custom_cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Jack is always the lowest
+        match (self, other) {
+            (Self::Jack, _) => std::cmp::Ordering::Less,
+            (_, Self::Jack) => std::cmp::Ordering::Greater,
+            (a, b) => a.cmp(b),
+        }
+    }
 }
 
 impl Hand {
@@ -66,14 +68,18 @@ impl Hand {
             .map(|(_, &count)| count)
             .collect();
 
+        // qty of second most common card
+        let second = counts.get(1).unwrap_or(&0);
+
+        // check qty of most common card
         match counts.first().unwrap() {
             5 => Pattern::FiveKind,
             4 => Pattern::FourKind,
-            3 => match counts.get(1).unwrap() {
+            3 => match second {
                 2 => Pattern::FullHouse,
                 _ => Pattern::ThreeKind,
             },
-            2 => match counts.get(1).unwrap() {
+            2 => match second {
                 2 => Pattern::TwoPairs,
                 _ => Pattern::Pair,
             },
@@ -81,22 +87,24 @@ impl Hand {
         }
     }
 
+    /// Ugly but it works ¯\_(ツ)_/¯
     fn find_pattern_joker(&self) -> Pattern {
         let counts_map = self.cards.iter().counts();
         let jokers_count = *counts_map.get(&Card::Jack).unwrap_or(&0);
+        // get counts of all cards except jokers, sorted from highest to lowest
         let counts: Vec<usize> = counts_map
             .iter()
             .sorted_by(|(_, &a), (_, &b)| b.cmp(&a))
-            .filter_map(|(&card, &count)| {
-                if matches!(card, &Card::Jack) {
-                    None
-                } else {
-                    Some(count)
-                }
-            })
+            .filter_map(|(&card, &count)| (!matches!(card, &Card::Jack)).then_some(count))
             .collect();
 
-        match counts.first().unwrap_or(&0) {
+        // qty of most common card
+        let first = counts.first().unwrap_or(&0);
+        // qty of second most common card
+        let second = counts.get(1).unwrap_or(&0);
+
+        // yay for pattern matching
+        match first {
             5 => Pattern::FiveKind,
             4 => {
                 if jokers_count >= 1 {
@@ -105,14 +113,14 @@ impl Hand {
                     Pattern::FourKind
                 }
             }
-            3 => match (counts.get(1).unwrap_or(&0), jokers_count) {
+            3 => match (second, jokers_count) {
                 (_, 2) => Pattern::FiveKind,
                 (_, 1) => Pattern::FourKind,
                 (2, _) => Pattern::FullHouse,
                 (1, _) => Pattern::ThreeKind,
                 (_, _) => unreachable!("Invalid hand"),
             },
-            2 => match (counts.get(1).unwrap_or(&0), jokers_count) {
+            2 => match (second, jokers_count) {
                 (_, 3) => Pattern::FiveKind,
                 (_, 2) => Pattern::FourKind,
                 (2, 1) => Pattern::FullHouse,
@@ -121,7 +129,7 @@ impl Hand {
                 (_, 0) => Pattern::Pair,
                 (_, _) => Pattern::HighCard,
             },
-            1 => match (counts.get(1).unwrap_or(&0), jokers_count) {
+            1 => match (second, jokers_count) {
                 (_, 4) => Pattern::FiveKind,
                 (_, 3) => Pattern::FourKind,
                 (_, 2) => Pattern::ThreeKind,
@@ -137,8 +145,29 @@ impl Hand {
             },
         }
     }
+
+    /// Same as regular `cmp` but we use the special joker pattern finding and the `custom_cmp` for cards
+    fn custom_cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let self_pattern = self.find_pattern_joker();
+        let other_pattern = other.find_pattern_joker();
+
+        if self_pattern != other_pattern {
+            return self_pattern.cmp(&other_pattern);
+        }
+
+        let self_cards = self.cards.iter();
+        let other_cards = other.cards.iter();
+
+        for (self_card, other_card) in self_cards.zip(other_cards) {
+            if self_card != other_card {
+                return self_card.custom_cmp(other_card);
+            }
+        }
+        std::cmp::Ordering::Equal
+    }
 }
 
+/// Convert from a character to a card
 impl From<char> for Card {
     fn from(value: char) -> Self {
         match value {
@@ -163,6 +192,7 @@ impl From<char> for Card {
 impl Eq for Hand {}
 
 impl PartialEq for Hand {
+    /// We don't compare on the bid amount, only cards
     fn eq(&self, other: &Self) -> bool {
         self.cards == other.cards
     }
@@ -189,28 +219,8 @@ impl Ord for Hand {
     }
 }
 
-impl Hand {
-    fn custom_cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let self_pattern = self.find_pattern_joker();
-        let other_pattern = other.find_pattern_joker();
-
-        if self_pattern != other_pattern {
-            return self_pattern.cmp(&other_pattern);
-        }
-
-        let self_cards = self.cards.iter();
-        let other_cards = other.cards.iter();
-
-        for (self_card, other_card) in self_cards.zip(other_cards) {
-            if self_card != other_card {
-                return self_card.custom_cmp(other_card);
-            }
-        }
-        std::cmp::Ordering::Equal
-    }
-}
-
 impl PartialOrd for Hand {
+    /// We can always compare hands
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }

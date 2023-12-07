@@ -64,8 +64,8 @@ impl Hand {
             .iter()
             .counts()
             .iter()
-            .sorted_by(|(_, &a), (_, &b)| b.cmp(&a))
-            .map(|(_, &count)| count)
+            .sorted_by(|(_, &a), (_, &b)| b.cmp(&a)) // sort by descending count
+            .map(|(_, &count)| count) // only keep count
             .collect();
 
         // qty of second most common card
@@ -94,8 +94,8 @@ impl Hand {
         // get counts of all cards except jokers, sorted from highest to lowest
         let counts: Vec<usize> = counts_map
             .iter()
-            .sorted_by(|(_, &a), (_, &b)| b.cmp(&a))
-            .filter_map(|(&card, &count)| (!matches!(card, &Card::Jack)).then_some(count))
+            .sorted_by(|(_, &a), (_, &b)| b.cmp(&a)) // sort by descending count
+            .filter_map(|(&card, &count)| (!matches!(card, &Card::Jack)).then_some(count)) // only keep count (non-jack)
             .collect();
 
         // qty of most common card

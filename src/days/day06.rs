@@ -5,7 +5,7 @@ use nom::{
     character::complete::{line_ending, space1, u64},
     combinator::map,
     multi::separated_list1,
-    sequence::{separated_pair, tuple},
+    sequence::separated_pair,
     IResult,
 };
 
@@ -49,15 +49,15 @@ fn interval_length(i: RangeInclusive<u64>) -> u64 {
 
 fn parse_times(input: &str) -> IResult<&str, Vec<u64>> {
     map(
-        tuple((tag("Time:"), space1, separated_list1(space1, u64))),
-        |(_, _, numbers)| numbers,
+        separated_pair(tag("Time:"), space1, separated_list1(space1, u64)),
+        |(_, numbers)| numbers,
     )(input)
 }
 
 fn parse_distances(input: &str) -> IResult<&str, Vec<u64>> {
     map(
-        tuple((tag("Distance:"), space1, separated_list1(space1, u64))),
-        |(_, _, numbers)| numbers,
+        separated_pair(tag("Distance:"), space1, separated_list1(space1, u64)),
+        |(_, numbers)| numbers,
     )(input)
 }
 

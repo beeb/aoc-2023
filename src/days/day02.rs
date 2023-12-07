@@ -4,7 +4,7 @@ use nom::{
     character::complete::{line_ending, space1, u64},
     combinator::map,
     multi::separated_list0,
-    sequence::tuple,
+    sequence::{separated_pair, tuple},
     IResult,
 };
 
@@ -33,11 +33,11 @@ fn parse_game_round(input: &str) -> IResult<&str, GameRound> {
     map(
         separated_list0(
             tag(", "),
-            tuple((u64, space1, alt((tag("red"), tag("green"), tag("blue"))))),
+            separated_pair(u64, space1, alt((tag("red"), tag("green"), tag("blue")))),
         ),
         |cubes| {
             let mut round = GameRound::default();
-            for (qty, _, color) in cubes {
+            for (qty, color) in cubes {
                 match color {
                     "red" => round.red = qty,
                     "green" => round.green = qty,

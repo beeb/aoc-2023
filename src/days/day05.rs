@@ -6,7 +6,7 @@ use nom::{
     character::complete::{char, line_ending, not_line_ending, space1, u64},
     combinator::map,
     multi::{separated_list0, separated_list1},
-    sequence::{separated_pair, tuple},
+    sequence::{preceded, separated_pair},
     IResult,
 };
 
@@ -114,8 +114,8 @@ fn compatible_mappings(input_mappings: &[Mapping], output_mapping: &Mapping) -> 
 
 fn parse_seeds(input: &str) -> IResult<&str, Vec<u64>> {
     map(
-        tuple((tag("seeds: "), separated_list0(space1, u64))),
-        |(_, seeds)| seeds,
+        preceded(tag("seeds: "), separated_list0(space1, u64)),
+        |seeds| seeds,
     )(input)
 }
 
@@ -170,12 +170,12 @@ impl Day for Day05 {
 
     fn parse(input: &str) -> IResult<&str, Self::Input> {
         map(
-            tuple((
+            separated_pair(
                 parse_seeds,
                 tag("\n\n"),
                 separated_list0(tag("\n\n"), parse_mappings),
-            )),
-            |(seeds, _, mappings)| Almanac {
+            ),
+            |(seeds, mappings)| Almanac {
                 seeds,
                 tables: mappings.iter().map(|m| m.clone().into()).collect(),
             },

@@ -99,9 +99,9 @@ fn adjascent_symbol(
     number_y: usize,
     number_len: usize,
 ) -> bool {
-    let x_from = number_x.checked_sub(1).unwrap_or(number_x);
+    let x_from = number_x.saturating_sub(1);
     let x_to = number_x + number_len;
-    let y_from = number_y.checked_sub(1).unwrap_or(number_y);
+    let y_from = number_y.saturating_sub(1);
     let y_to = number_y + 1;
     for y in y_from..=y_to {
         for x in x_from..=x_to {
@@ -118,9 +118,9 @@ fn adjascent_symbol(
 
 fn adjascent_numbers(numbers: &HashMap<Point, usize>, star_pos: &Point) -> Option<(usize, usize)> {
     let mut res = Vec::new();
-    let x_from = star_pos.x.checked_sub(1).unwrap_or(star_pos.x);
+    let x_from = star_pos.x.saturating_sub(1);
     let x_to = star_pos.x + 1;
-    let y_from = star_pos.y.checked_sub(1).unwrap_or(star_pos.y);
+    let y_from = star_pos.y.saturating_sub(1);
     let y_to = star_pos.y + 1;
     for y in y_from..=y_to {
         for x in x_from..=x_to {

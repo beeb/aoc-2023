@@ -237,6 +237,7 @@ impl Day for Day07 {
 
     type Output1 = usize;
 
+    /// Part 1 took 2.389249ms
     #[allow(clippy::cast_possible_truncation)]
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
@@ -249,6 +250,7 @@ impl Day for Day07 {
 
     type Output2 = usize;
 
+    /// Part 2 took 2.926981ms
     #[allow(clippy::cast_possible_truncation)]
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input

@@ -104,45 +104,16 @@ impl Hand {
         let second = counts.get(1).unwrap_or(&0);
 
         // yay for pattern matching
-        match first {
-            5 => Pattern::FiveKind,
-            4 => {
-                if jokers_count >= 1 {
-                    Pattern::FiveKind
-                } else {
-                    Pattern::FourKind
-                }
+        match (first, second, jokers_count) {
+            (5, _, _) | (4, _, 1) | (3, _, 2) | (2, _, 3) | (1, _, 4) | (_, _, 5) => {
+                Pattern::FiveKind
             }
-            3 => match (second, jokers_count) {
-                (_, 2) => Pattern::FiveKind,
-                (_, 1) => Pattern::FourKind,
-                (2, _) => Pattern::FullHouse,
-                (1, _) => Pattern::ThreeKind,
-                (_, _) => unreachable!("Invalid hand"),
-            },
-            2 => match (second, jokers_count) {
-                (_, 3) => Pattern::FiveKind,
-                (_, 2) => Pattern::FourKind,
-                (2, 1) => Pattern::FullHouse,
-                (_, 1) => Pattern::ThreeKind,
-                (2, 0) => Pattern::TwoPairs,
-                (_, 0) => Pattern::Pair,
-                (_, _) => Pattern::HighCard,
-            },
-            1 => match (second, jokers_count) {
-                (_, 4) => Pattern::FiveKind,
-                (_, 3) => Pattern::FourKind,
-                (_, 2) => Pattern::ThreeKind,
-                (_, 1) => Pattern::Pair,
-                (_, _) => Pattern::HighCard,
-            },
-            _ => match jokers_count {
-                5 => Pattern::FiveKind,
-                4 => Pattern::FourKind,
-                3 => Pattern::ThreeKind,
-                2 => Pattern::Pair,
-                _ => Pattern::HighCard,
-            },
+            (4, 1, _) | (3, _, 1) | (2, _, 2) | (1, _, 3) | (_, _, 4) => Pattern::FourKind,
+            (3, 2, _) | (2, 2, 1) => Pattern::FullHouse,
+            (3, _, _) | (2, _, 1) | (1, _, 2) | (_, _, 3) => Pattern::ThreeKind,
+            (2, 2, 0) => Pattern::TwoPairs,
+            (2, _, _) | (1, _, 1) | (_, _, 2) => Pattern::Pair,
+            _ => Pattern::HighCard,
         }
     }
 

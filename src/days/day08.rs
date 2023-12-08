@@ -41,8 +41,7 @@ fn count_steps(
     let (count, _) = instructions
         .iter()
         .cycle()
-        .enumerate()
-        .fold_while((0, start_node), |(_, n), (i, instr)| {
+        .fold_while((0, start_node), |(i, n), instr| {
             let next = match instr {
                 Dir::Left => nodes.get(&n.left).unwrap(),
                 Dir::Right => nodes.get(&n.right).unwrap(),
@@ -108,7 +107,7 @@ impl Day for Day08 {
 
     type Output1 = usize;
 
-    /// Part 1 took 407.9µs
+    /// Part 1 took 378.1µs
     fn part_1(input: &Self::Input) -> Self::Output1 {
         // We stored all the nodes in a HashMap with the node name as the key
         let (instructions, nodes) = input;
@@ -118,7 +117,7 @@ impl Day for Day08 {
 
     type Output2 = usize;
 
-    /// Part 2 took 2.4632ms
+    /// Part 2 took 2.2817ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let (instructions, nodes) = input;
         // Find all the starting nodes (ending with 'A') and count how long until we reach and end node for each

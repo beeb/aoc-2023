@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use itertools::{FoldWhile, Itertools};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -37,18 +38,23 @@ fn count_steps(
     start_node: &Node,
     part2: bool,
 ) -> usize {
-    let mut count = 0;
-    let mut node = start_node;
-    for i in instructions.iter().cycle() {
-        count += 1;
-        node = match i {
-            Dir::Left => nodes.get(&node.left).unwrap(),
-            Dir::Right => nodes.get(&node.right).unwrap(),
-        };
-        if (!part2 && node.name == "ZZZ") || (part2 && node.name.ends_with('Z')) {
-            break;
-        }
-    }
+    let (count, _) = instructions
+        .iter()
+        .cycle()
+        .enumerate()
+        .fold_while((0, start_node), |(_, n), (i, instr)| {
+            let next = match instr {
+                Dir::Left => nodes.get(&n.left).unwrap(),
+                Dir::Right => nodes.get(&n.right).unwrap(),
+            };
+            if (!part2 && next.name == "ZZZ") || (part2 && next.name.ends_with('Z')) {
+                FoldWhile::Done((i + 1, next))
+            } else {
+                FoldWhile::Continue((i + 1, next))
+            }
+        })
+        .into_inner();
+
     count
 }
 

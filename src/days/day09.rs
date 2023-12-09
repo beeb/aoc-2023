@@ -32,6 +32,7 @@ fn extrapolate(sensor: &[i64], part2: bool) -> i64 {
             }
         }
     };
+    // extrapolate the previous list until we reach the original sensor list
     while let Some(list) = stack.pop() {
         if part2 {
             extrapolated = list.first().unwrap() - extrapolated;

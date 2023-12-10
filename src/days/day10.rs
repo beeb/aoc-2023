@@ -265,7 +265,7 @@ impl Day for Day10 {
         // We have to switch from inside to outside or vice versa when we encounter a vertical pipe, or when a corner
         // pipe follows another corner pipe with the complementary vertical segment.
         // E.g. we are outside, we find a └ pipe, we are still outside, but if we then encounter a ┐ pipe later,
-        // then we switch to inside.
+        // then we switch to inside. On the countrary, if we later encounter a ┘ pipe, then we stay outside.
         let mut inside_count = 0;
         for y in 0..size_y {
             let mut inside: bool = false; // we start at each row outside the loop

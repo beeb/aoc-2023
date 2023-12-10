@@ -137,33 +137,32 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
     let mut pipes: HashSet<Point> = HashSet::with_capacity(1000);
     pipes.insert(pos.clone());
     'outer: loop {
-        let Some(this) = grid.get(&pos) else {
+        let Some(tile) = grid.get(&pos) else {
             unreachable!();
         };
         for dir in DIRS {
             // only look in directions where the pipe is connected to
-            match (&dir, this) {
-                (Dir::North, Tile::Pipe(t)) if !t.north() => {
+            if let Tile::Pipe(pipe) = tile {
+                if (!pipe.north() && dir == Dir::North)
+                    || (!pipe.east() && dir == Dir::East)
+                    || (!pipe.south() && dir == Dir::South)
+                    || (!pipe.west() && dir == Dir::West)
+                {
                     continue;
                 }
-                (Dir::East, Tile::Pipe(t)) if !t.east() => {
-                    continue;
-                }
-                (Dir::South, Tile::Pipe(t)) if !t.south() => {
-                    continue;
-                }
-                (Dir::West, Tile::Pipe(t)) if !t.west() => {
-                    continue;
-                }
-                _ => {}
             }
+
             let next_pos = pos.at_dir(&dir);
             let Some(next) = grid.get(&next_pos) else {
                 continue;
             };
-            // tile at the north position must be connected on the south side, etc.
-            match (dir, next) {
-                (Dir::North, Tile::Pipe(t)) if t.south() => {
+            if let Tile::Pipe(pipe) = next {
+                // Tile at the north position must be connected on the south side, etc
+                if (dir == Dir::North && pipe.south())
+                    || (dir == Dir::East && pipe.west())
+                    || (dir == Dir::South && pipe.north())
+                    || (dir == Dir::West && pipe.east())
+                {
                     if pipes.contains(&next_pos) {
                         continue;
                     }
@@ -171,39 +170,14 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
                     pos = next_pos;
                     break;
                 }
-                (Dir::East, Tile::Pipe(t)) if t.west() => {
-                    if pipes.contains(&next_pos) {
-                        continue;
-                    }
-                    pipes.insert(next_pos.clone());
-                    pos = next_pos;
-                    break;
+            }
+            if let Tile::Start = next {
+                // Avoid early exit if we re-visit the start tile immediately after starting to look
+                if pipes.len() < 3 {
+                    continue;
                 }
-                (Dir::South, Tile::Pipe(t)) if t.north() => {
-                    if pipes.contains(&next_pos) {
-                        continue;
-                    }
-                    pipes.insert(next_pos.clone());
-                    pos = next_pos;
-                    break;
-                }
-                (Dir::West, Tile::Pipe(t)) if t.east() => {
-                    if pipes.contains(&next_pos) {
-                        continue;
-                    }
-                    pipes.insert(next_pos.clone());
-                    pos = next_pos;
-                    break;
-                }
-                (_, Tile::Start) => {
-                    // Avoid early exit if we re-visit the start tile immediately after starting to look
-                    if pipes.len() < 3 {
-                        continue;
-                    }
-                    // We went around the loop
-                    break 'outer;
-                }
-                _ => {}
+                // We went around the loop
+                break 'outer;
             }
         }
     }

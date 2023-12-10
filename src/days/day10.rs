@@ -95,6 +95,19 @@ impl Pipe {
     }
 }
 
+impl std::fmt::Display for Pipe {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Pipe::NorthEast => write!(f, "└"),
+            Pipe::NorthSouth => write!(f, "|"),
+            Pipe::NorthWest => write!(f, "┘"),
+            Pipe::EastSouth => write!(f, "┌"),
+            Pipe::EastWest => write!(f, "—"),
+            Pipe::SouthWest => write!(f, "┐"),
+        }
+    }
+}
+
 #[allow(clippy::cast_possible_wrap)]
 fn get_grid_hashmap(grid: &[Vec<Tile>]) -> HashMap<Point, &Tile> {
     grid.iter()
@@ -328,14 +341,7 @@ impl Day for Day10 {
                     } else {
                         Style::new().blue()
                     };
-                    match pipe {
-                        Pipe::NorthEast => print!("{}", "└".style(style)),
-                        Pipe::NorthSouth => print!("{}", "|".style(style)),
-                        Pipe::NorthWest => print!("{}", "┘".style(style)),
-                        Pipe::EastSouth => print!("{}", "┌".style(style)),
-                        Pipe::EastWest => print!("{}", "-".style(style)),
-                        Pipe::SouthWest => print!("{}", "┐".style(style)),
-                    }
+                    print!("{}", pipe.style(style));
                 } else if inside {
                     inside_count += 1;
                     print!("{}", "i".style(style));

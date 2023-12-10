@@ -328,22 +328,13 @@ impl Day for Day10 {
                     } else {
                         Style::new().blue()
                     };
-                    if pipe.north() {
-                        if pipe.east() {
-                            print!("{}", "└".style(style));
-                        } else if pipe.south() {
-                            print!("{}", "|".style(style));
-                        } else if pipe.west() {
-                            print!("{}", "┘".style(style));
-                        }
-                    } else if pipe.east() {
-                        if pipe.south() {
-                            print!("{}", "┌".style(style));
-                        } else if pipe.west() {
-                            print!("{}", "-".style(style));
-                        }
-                    } else if pipe.south() && pipe.west() {
-                        print!("{}", "┐".style(style));
+                    match pipe {
+                        Pipe::NorthEast => print!("{}", "└".style(style)),
+                        Pipe::NorthSouth => print!("{}", "|".style(style)),
+                        Pipe::NorthWest => print!("{}", "┘".style(style)),
+                        Pipe::EastSouth => print!("{}", "┌".style(style)),
+                        Pipe::EastWest => print!("{}", "-".style(style)),
+                        Pipe::SouthWest => print!("{}", "┐".style(style)),
                     }
                 } else if inside {
                     inside_count += 1;

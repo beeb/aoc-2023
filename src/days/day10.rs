@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use itertools::Itertools;
 use nom::{
     character::complete::{line_ending, not_line_ending},
     combinator::map,
@@ -10,25 +11,15 @@ use owo_colors::{OwoColorize, Style};
 
 use crate::days::Day;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Dir {
     North,
     East,
     South,
     West,
-    NorthEast,
-    SouthEast,
-    SouthWest,
-    NorthWest,
 }
 
 const DIRS: [Dir; 4] = [Dir::North, Dir::East, Dir::South, Dir::West];
-const DIAG_DIRS: [Dir; 4] = [
-    Dir::NorthEast,
-    Dir::SouthEast,
-    Dir::SouthWest,
-    Dir::NorthWest,
-];
 
 pub struct Day10;
 
@@ -38,13 +29,14 @@ pub struct Point {
     pub y: isize,
 }
 
-#[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Default)]
-pub struct Pipe {
-    pub north: bool,
-    pub east: bool,
-    pub south: bool,
-    pub west: bool,
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum Pipe {
+    NorthEast,
+    NorthSouth,
+    NorthWest,
+    EastSouth,
+    EastWest,
+    SouthWest,
 }
 
 #[derive(Debug)]
@@ -73,22 +65,32 @@ impl Point {
                 x: self.x - 1,
                 y: self.y,
             },
-            Dir::NorthEast => Self {
-                x: self.x + 1,
-                y: self.y - 1,
-            },
-            Dir::SouthEast => Self {
-                x: self.x + 1,
-                y: self.y + 1,
-            },
-            Dir::SouthWest => Self {
-                x: self.x - 1,
-                y: self.y + 1,
-            },
-            Dir::NorthWest => Self {
-                x: self.x - 1,
-                y: self.y - 1,
-            },
+        }
+    }
+}
+
+impl Pipe {
+    fn north(&self) -> bool {
+        matches!(self, Pipe::NorthEast | Pipe::NorthSouth | Pipe::NorthWest)
+    }
+    fn east(&self) -> bool {
+        matches!(self, Pipe::NorthEast | Pipe::EastSouth | Pipe::EastWest)
+    }
+    fn south(&self) -> bool {
+        matches!(self, Pipe::NorthSouth | Pipe::EastSouth | Pipe::SouthWest)
+    }
+    fn west(&self) -> bool {
+        matches!(self, Pipe::NorthWest | Pipe::EastWest | Pipe::SouthWest)
+    }
+    fn from_dirs(dir1: &Dir, dir2: &Dir) -> Self {
+        match (dir1, dir2) {
+            (Dir::North, Dir::East) => Pipe::NorthEast,
+            (Dir::North, Dir::South) => Pipe::NorthSouth,
+            (Dir::North, Dir::West) => Pipe::NorthWest,
+            (Dir::East, Dir::South) => Pipe::EastSouth,
+            (Dir::East, Dir::West) => Pipe::EastWest,
+            (Dir::South, Dir::West) => Pipe::SouthWest,
+            _ => unreachable!(),
         }
     }
 }
@@ -128,16 +130,16 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
         for dir in DIRS {
             // only look in directions where the pipe is connected to
             match (&dir, this) {
-                (Dir::North, Tile::Pipe(t)) if !t.north => {
+                (Dir::North, Tile::Pipe(t)) if !t.north() => {
                     continue;
                 }
-                (Dir::East, Tile::Pipe(t)) if !t.east => {
+                (Dir::East, Tile::Pipe(t)) if !t.east() => {
                     continue;
                 }
-                (Dir::South, Tile::Pipe(t)) if !t.south => {
+                (Dir::South, Tile::Pipe(t)) if !t.south() => {
                     continue;
                 }
-                (Dir::West, Tile::Pipe(t)) if !t.west => {
+                (Dir::West, Tile::Pipe(t)) if !t.west() => {
                     continue;
                 }
                 _ => {}
@@ -148,7 +150,7 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
             };
             // tile at the north position must be connected on the south side, etc.
             match (dir, next) {
-                (Dir::North, Tile::Pipe(t)) if t.south => {
+                (Dir::North, Tile::Pipe(t)) if t.south() => {
                     if pipes.contains(&next_pos) {
                         continue;
                     }
@@ -156,7 +158,7 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
                     pos = next_pos;
                     break;
                 }
-                (Dir::East, Tile::Pipe(t)) if t.west => {
+                (Dir::East, Tile::Pipe(t)) if t.west() => {
                     if pipes.contains(&next_pos) {
                         continue;
                     }
@@ -164,7 +166,7 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
                     pos = next_pos;
                     break;
                 }
-                (Dir::South, Tile::Pipe(t)) if t.north => {
+                (Dir::South, Tile::Pipe(t)) if t.north() => {
                     if pipes.contains(&next_pos) {
                         continue;
                     }
@@ -172,7 +174,7 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
                     pos = next_pos;
                     break;
                 }
-                (Dir::West, Tile::Pipe(t)) if t.east => {
+                (Dir::West, Tile::Pipe(t)) if t.east() => {
                     if pipes.contains(&next_pos) {
                         continue;
                     }
@@ -204,42 +206,12 @@ impl Day for Day10 {
             map(not_line_ending, |s: &str| {
                 s.chars()
                     .map(|c| match c {
-                        '|' => Tile::Pipe(Pipe {
-                            north: true,
-                            east: false,
-                            south: true,
-                            west: false,
-                        }),
-                        '-' => Tile::Pipe(Pipe {
-                            north: false,
-                            east: true,
-                            south: false,
-                            west: true,
-                        }),
-                        'L' => Tile::Pipe(Pipe {
-                            north: true,
-                            east: true,
-                            south: false,
-                            west: false,
-                        }),
-                        'J' => Tile::Pipe(Pipe {
-                            north: true,
-                            east: false,
-                            south: false,
-                            west: true,
-                        }),
-                        '7' => Tile::Pipe(Pipe {
-                            north: false,
-                            east: false,
-                            south: true,
-                            west: true,
-                        }),
-                        'F' => Tile::Pipe(Pipe {
-                            north: false,
-                            east: true,
-                            south: true,
-                            west: false,
-                        }),
+                        '|' => Tile::Pipe(Pipe::NorthSouth),
+                        '-' => Tile::Pipe(Pipe::EastWest),
+                        'L' => Tile::Pipe(Pipe::NorthEast),
+                        'J' => Tile::Pipe(Pipe::NorthWest),
+                        '7' => Tile::Pipe(Pipe::SouthWest),
+                        'F' => Tile::Pipe(Pipe::EastSouth),
                         '.' => Tile::Ground,
                         'S' => Tile::Start,
                         _ => unimplemented!(),
@@ -251,6 +223,7 @@ impl Day for Day10 {
 
     type Output1 = usize;
 
+    /// Part 1 took 2.935601ms
     #[allow(clippy::cast_possible_wrap, clippy::too_many_lines)]
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let grid = get_grid_hashmap(input);
@@ -260,6 +233,7 @@ impl Day for Day10 {
 
     type Output2 = usize;
 
+    /// Part 2 took 3.7294ms (without drawing)
     #[allow(
         clippy::too_many_lines,
         clippy::cast_possible_wrap,
@@ -274,34 +248,40 @@ impl Day for Day10 {
             .iter()
             .find(|(_, &t)| matches!(t, Tile::Start))
             .unwrap();
-        let mut start_pipe = Pipe::default();
-        for dir in DIRS {
-            let Some(pipe_pos) = pipes.get(&start_pos.at_dir(&dir)) else {
-                continue;
-            };
-            let Some(Tile::Pipe(neighbor)) = grid.get(pipe_pos) else {
-                unreachable!("this tile should exist and be a pipe");
-            };
-            // this is one of the pipes connected to start
-            if dir == Dir::North && neighbor.south {
-                start_pipe.north = true;
-            } else if dir == Dir::East && neighbor.west {
-                start_pipe.east = true;
-            } else if dir == Dir::South && neighbor.north {
-                start_pipe.south = true;
-            } else if dir == Dir::West && neighbor.east {
-                start_pipe.west = true;
-            }
-        }
+        // find the two directions the starting pipe is connected to
+        let (dir1, dir2): (&Dir, &Dir) = DIRS
+            .iter()
+            .filter(|dir| {
+                let pos = start_pos.at_dir(dir);
+                match grid.get(&pos) {
+                    Some(Tile::Pipe(pipe)) => match (dir, pipe) {
+                        (Dir::North, p) if p.south() => true,
+                        (Dir::East, p) if p.west() => true,
+                        (Dir::South, p) if p.north() => true,
+                        (Dir::West, p) if p.east() => true,
+                        _ => false,
+                    },
+                    _ => false,
+                }
+            })
+            .sorted()
+            .collect_tuple()
+            .unwrap();
+        let start_pipe = Pipe::from_dirs(dir1, dir2);
         let start_tile = Tile::Pipe(start_pipe);
         grid.insert(start_pos.clone(), &start_tile);
 
         let size_y = input.len() as isize;
         let size_x = input.first().unwrap().len() as isize;
 
+        // iterate through the grid and keep track of whether we are inside or outside the loop
+        // We have to switch from inside to outside or vice versa when we encounter a vertical pipe, or when a corner
+        // pipe follows another corner pipe with the complementary vertical segment.
+        // E.g. we are outside, we find a └ pipe, we are still outside, but if we then encounter a ┐ pipe later,
+        // then we switch to inside.
         let mut inside_count = 0;
         for y in 0..size_y {
-            let mut inside: bool = false;
+            let mut inside: bool = false; // we start at each row outside the loop
             let mut maybe_switch: Option<Dir> = None;
             for x in 0..size_x {
                 let pos = Point { x, y };
@@ -318,47 +298,51 @@ impl Day for Day10 {
                     let Tile::Pipe(pipe) = tile else {
                         unreachable!("pipe loop contains tile that is not a pipe");
                     };
-                    if pipe.north || pipe.south {
-                        if pipe.north && pipe.south {
+                    if pipe.north() || pipe.south() {
+                        if pipe.north() && pipe.south() {
+                            // fully vertical pipe, we switch
                             inside = !inside;
                             maybe_switch = None;
                         } else if let Some(last_vert) = maybe_switch {
-                            if (last_vert == Dir::North && pipe.south)
-                                || (last_vert == Dir::South && pipe.north)
+                            // we had encountered a pipe with a vertical segment earlier
+                            if (last_vert == Dir::North && pipe.south())
+                                || (last_vert == Dir::South && pipe.north())
                             {
+                                // if the current vertical segment is complementary, we switch
                                 inside = !inside;
                             }
-                            maybe_switch = None;
+                            maybe_switch = None; // in all cases, we reset the pending state
                         } else {
+                            // it's the first time we encounter a vertical pipe segment, let's register it in the
+                            // pending state
                             maybe_switch = pipe
-                                .south
+                                .south()
                                 .then_some(Dir::South)
-                                .or(pipe.north.then_some(Dir::North));
+                                .or(pipe.north().then_some(Dir::North));
                         }
                     }
 
+                    // drawing the grid an state of the right of the current tile (inside = yellow, outside = blue)
                     let style = if inside {
                         Style::new().yellow()
                     } else {
                         Style::new().blue()
                     };
-
-                    // draw
-                    if pipe.north {
-                        if pipe.east {
+                    if pipe.north() {
+                        if pipe.east() {
                             print!("{}", "└".style(style));
-                        } else if pipe.south {
+                        } else if pipe.south() {
                             print!("{}", "|".style(style));
-                        } else if pipe.west {
+                        } else if pipe.west() {
                             print!("{}", "┘".style(style));
                         }
-                    } else if pipe.east {
-                        if pipe.south {
+                    } else if pipe.east() {
+                        if pipe.south() {
                             print!("{}", "┌".style(style));
-                        } else if pipe.west {
+                        } else if pipe.west() {
                             print!("{}", "-".style(style));
                         }
-                    } else if pipe.south && pipe.west {
+                    } else if pipe.south() && pipe.west() {
                         print!("{}", "┐".style(style));
                     }
                 } else if inside {
@@ -371,118 +355,6 @@ impl Day for Day10 {
             println!();
         }
         inside_count
-
-        /* // flood the outside, starting in the corners
-
-        let mut outside = HashSet::<Point>::new();
-        outside.insert(Point { x: 0, y: 0 });
-        outside.insert(Point {
-            x: 0,
-            y: size_y - 1,
-        });
-        outside.insert(Point {
-            x: size_x - 1,
-            y: 0,
-        });
-        outside.insert(Point {
-            x: size_x - 1,
-            y: size_y - 1,
-        });
-
-        // stack for BFS
-        let mut stack = VecDeque::<Point>::new();
-        stack.push_back(Point { x: 0, y: 0 });
-        stack.push_back(Point {
-            x: 0,
-            y: size_y - 1,
-        });
-        stack.push_back(Point {
-            x: size_x - 1,
-            y: 0,
-        });
-        stack.push_back(Point {
-            x: size_x - 1,
-            y: size_y - 1,
-        });
-        while let Some(pos) = stack.pop_front() {
-            let Some(tile) = grid.get(&pos) else {
-                unreachable!("we should only add existing tiles to the stack");
-            };
-            for dir in DIRS {
-                let next_pos = pos.at_dir(&dir);
-                let Some(_) = grid.get(&next_pos) else {
-                    continue;
-                };
-                if pipes.contains(&pos) {
-                    // only look in the directions allowed by the pipe
-                    let Tile::Pipe(pipe) = tile else {
-                        unreachable!("pipe loop contains tile that is not a pipe?");
-                    };
-                    if (!pipe.north && dir == Dir::North)
-                        || (!pipe.east && dir == Dir::East)
-                        || (!pipe.south && dir == Dir::South)
-                        || (!pipe.west && dir == Dir::West)
-                    {
-                        continue;
-                    }
-                }
-
-                if outside.contains(&next_pos) {
-                    continue;
-                }
-                outside.insert(next_pos.clone());
-                stack.push_back(next_pos.clone());
-            }
-            for dir in DIAG_DIRS {
-                let next_pos = pos.at_dir(&dir);
-                let Some(_) = grid.get(&next_pos) else {
-                    continue;
-                };
-                if outside.contains(&next_pos) {
-                    continue;
-                }
-                if !pipes.contains(&pos) && !pipes.contains(&next_pos) {
-                    outside.insert(next_pos.clone());
-                    stack.push_back(next_pos.clone());
-                }
-            }
-        }
-
-        for y in 0..size_y {
-            for x in 0..size_x {
-                let pos = Point { x, y };
-                if outside.contains(&pos) {
-                    if pipes.contains(&pos) {
-                        let Some(Tile::Pipe(pipe)) = grid.get(&pos) else {
-                            unreachable!();
-                        };
-                        if pipe.north {
-                            if pipe.east {
-                                print!("└");
-                            } else if pipe.south {
-                                print!("|");
-                            } else if pipe.west {
-                                print!("┘");
-                            }
-                        } else if pipe.east {
-                            if pipe.south {
-                                print!("┌");
-                            } else if pipe.west {
-                                print!("-");
-                            }
-                        } else if pipe.south && pipe.west {
-                            print!("┐");
-                        }
-                    } else {
-                        print!("o");
-                    }
-                } else {
-                    print!("i");
-                }
-            }
-            println!();
-        }
-        (size_y * size_x) as usize - outside.len() */
     }
 }
 

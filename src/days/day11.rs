@@ -59,26 +59,26 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> Vec<Point> {
         .collect_vec();
 
     // adjust the coordinates to reflect the expansion of empty cols and rows
-    let mut galaxies = Vec::with_capacity(500);
-    for g in original_galaxies {
-        // how many rows and columns are empty above and to the left of this galaxy?
-        let empty_rows_above = empty_rows
-            .iter()
-            .take_while(|&&y| (y as isize) < g.1)
-            .count() as isize;
-        let empty_cols_left = empty_cols
-            .iter()
-            .take_while(|&&x| (x as isize) < g.0)
-            .count() as isize;
-        // for an expansion of two, we double each empty col/row
-        // so we add their number multiplied by expansion - 1 to the respective coordinates
-        galaxies.push(Point(
-            g.0 + empty_cols_left * (expansion - 1),
-            g.1 + empty_rows_above * (expansion - 1),
-        ));
-    }
-
-    galaxies
+    original_galaxies
+        .into_iter()
+        .map(|g| {
+            // how many rows and columns are empty above and to the left of this galaxy?
+            let empty_rows_above = empty_rows
+                .iter()
+                .take_while(|&&y| (y as isize) < g.1)
+                .count() as isize;
+            let empty_cols_left = empty_cols
+                .iter()
+                .take_while(|&&x| (x as isize) < g.0)
+                .count() as isize;
+            // for an expansion of two, we double each empty col/row
+            // so we add their number multiplied by expansion - 1 to the respective coordinates
+            Point(
+                g.0 + empty_cols_left * (expansion - 1),
+                g.1 + empty_rows_above * (expansion - 1),
+            )
+        })
+        .collect()
 }
 
 impl Day for Day11 {

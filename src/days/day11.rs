@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use itertools::Itertools;
 use nom::{
     character::complete::{line_ending, not_line_ending},
@@ -33,10 +31,10 @@ where
         .collect()
 }
 
-/// Get a set of coordinates of the galaxies, taking into account the expansion
+/// Get a list of coordinates of the galaxies, taking into account the expansion
 #[allow(clippy::cast_possible_wrap)]
-fn get_galaxies(input: &[Vec<char>], expansion: isize) -> HashSet<Point> {
-    let mut original_galaxies = HashSet::new();
+fn get_galaxies(input: &[Vec<char>], expansion: isize) -> Vec<Point> {
+    let mut original_galaxies = Vec::with_capacity(500);
     // keep track of empty rows while iterating
     let mut empty_rows = vec![];
     for (y, row) in input.iter().enumerate() {
@@ -45,7 +43,7 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> HashSet<Point> {
             if c == '#' {
                 // we found a galaxy, so the row cannot be empty
                 empty_row = false;
-                original_galaxies.insert(Point(x as isize, y as isize));
+                original_galaxies.push(Point(x as isize, y as isize));
             }
         }
         if empty_row {
@@ -61,7 +59,7 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> HashSet<Point> {
         .collect_vec();
 
     // adjust the coordinates to reflect the expansion of empty cols and rows
-    let mut galaxies = HashSet::new();
+    let mut galaxies = Vec::with_capacity(500);
     for g in original_galaxies {
         // how many rows and columns are empty above and to the left of this galaxy?
         let empty_rows_above = empty_rows
@@ -74,7 +72,7 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> HashSet<Point> {
             .count() as isize;
         // for an expansion of two, we double each empty col/row
         // so we add their number multiplied by expansion - 1 to the respective coordinates
-        galaxies.insert(Point(
+        galaxies.push(Point(
             g.0 + empty_cols_left * (expansion - 1),
             g.1 + empty_rows_above * (expansion - 1),
         ));
@@ -95,7 +93,7 @@ impl Day for Day11 {
 
     type Output1 = isize;
 
-    /// Part 1 took 188.702µs
+    /// Part 1 took 119.083µs
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let galaxies = get_galaxies(input, 2);
         galaxies
@@ -107,7 +105,7 @@ impl Day for Day11 {
 
     type Output2 = isize;
 
-    /// Part 2 took 163.335µs
+    /// Part 2 took 95.91µs
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let expansion = if cfg!(test) { 10 } else { 1_000_000 };
         let galaxies = get_galaxies(input, expansion);

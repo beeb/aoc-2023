@@ -51,8 +51,7 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> Vec<Point> {
         }
     }
     // transpose the matrix to find the empty columns
-    let tp = transpose(input);
-    let empty_cols = tp
+    let empty_cols = transpose(input)
         .into_iter()
         .enumerate()
         .filter_map(|(x, col)| col.iter().all(|c| *c != '#').then_some(x))

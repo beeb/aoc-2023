@@ -83,6 +83,17 @@ impl Pipe {
         }
     }
 
+    fn dirs(&self) -> [Dir; 2] {
+        match self {
+            Pipe::NorthEast => [Dir::North, Dir::East],
+            Pipe::NorthSouth => [Dir::North, Dir::South],
+            Pipe::NorthWest => [Dir::North, Dir::West],
+            Pipe::EastSouth => [Dir::East, Dir::South],
+            Pipe::EastWest => [Dir::East, Dir::West],
+            Pipe::SouthWest => [Dir::South, Dir::West],
+        }
+    }
+
     /// Does the pipe lead to the north
     fn north(&self) -> bool {
         matches!(self, Pipe::NorthEast | Pipe::NorthSouth | Pipe::NorthWest)
@@ -152,44 +163,45 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
         let Some(tile) = grid.get(&pos) else {
             unreachable!();
         };
-        for dir in DIRS {
-            // only look in directions where the pipe is connected to
-            if let Tile::Pipe(pipe) = tile {
-                if (!pipe.north() && dir == Dir::North)
-                    || (!pipe.east() && dir == Dir::East)
-                    || (!pipe.south() && dir == Dir::South)
-                    || (!pipe.west() && dir == Dir::West)
-                {
-                    continue;
-                }
-            }
 
+        // only look in directions where the pipe is connected to
+        let dirs: Vec<Dir> = match tile {
+            Tile::Start => DIRS.into(), // look in all 4 directions at the start
+            Tile::Pipe(pipe) => pipe.dirs().into(),
+            Tile::Ground => unreachable!(),
+        };
+
+        for dir in dirs {
             let next_pos = pos.at_dir(&dir);
             let Some(next) = grid.get(&next_pos) else {
                 continue;
             };
-            if let Tile::Pipe(pipe) = next {
-                // Tile at the north position must be connected on the south side, etc
-                if (dir == Dir::North && pipe.south())
-                    || (dir == Dir::East && pipe.west())
-                    || (dir == Dir::South && pipe.north())
-                    || (dir == Dir::West && pipe.east())
-                {
+            match next {
+                Tile::Pipe(pipe) => {
                     if pipes.contains(&next_pos) {
                         continue;
                     }
-                    pipes.insert(next_pos.clone());
-                    pos = next_pos;
-                    break;
+                    if (dir == Dir::North && pipe.south())
+                        || (dir == Dir::East && pipe.west())
+                        || (dir == Dir::South && pipe.north())
+                        || (dir == Dir::West && pipe.east())
+                    {
+                        pipes.insert(next_pos.clone());
+                        pos = next_pos;
+                        break;
+                    }
                 }
-            }
-            if let Tile::Start = next {
-                // Avoid early exit if we re-visit the start tile immediately after starting to look
-                if pipes.len() < 3 {
+                Tile::Start => {
+                    // Avoid early exit if we re-visit the start tile immediately after starting to look
+                    if pipes.len() < 3 {
+                        continue;
+                    }
+                    // We went around the loop
+                    break 'outer;
+                }
+                Tile::Ground => {
                     continue;
                 }
-                // We went around the loop
-                break 'outer;
             }
         }
     }

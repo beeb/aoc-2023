@@ -309,21 +309,27 @@ impl Day for Day10 {
                         }
                     }
 
-                    // drawing the grid an state of the right of the current tile (inside = yellow, outside = blue)
-                    let style = if inside {
-                        Style::new().yellow()
-                    } else {
-                        Style::new().blue()
-                    };
-                    print!("{}", pipe.style(style));
+                    if cfg!(not(test)) {
+                        // drawing the grid an state of the right of the current tile (inside = yellow, outside = blue)
+                        let style = if inside {
+                            Style::new().yellow()
+                        } else {
+                            Style::new().blue()
+                        };
+                        print!("{}", pipe.style(style));
+                    }
                 } else if inside {
                     inside_count += 1;
-                    print!("{}", "i".style(style));
-                } else {
+                    if cfg!(not(test)) {
+                        print!("{}", "i".style(style));
+                    }
+                } else if cfg!(not(test)) {
                     print!("{}", "o".style(style));
                 }
             }
-            println!();
+            if cfg!(not(test)) {
+                println!();
+            }
         }
         inside_count
     }

@@ -70,18 +70,7 @@ impl Point {
 }
 
 impl Pipe {
-    fn north(&self) -> bool {
-        matches!(self, Pipe::NorthEast | Pipe::NorthSouth | Pipe::NorthWest)
-    }
-    fn east(&self) -> bool {
-        matches!(self, Pipe::NorthEast | Pipe::EastSouth | Pipe::EastWest)
-    }
-    fn south(&self) -> bool {
-        matches!(self, Pipe::NorthSouth | Pipe::EastSouth | Pipe::SouthWest)
-    }
-    fn west(&self) -> bool {
-        matches!(self, Pipe::NorthWest | Pipe::EastWest | Pipe::SouthWest)
-    }
+    /// Construct a pipe tile from two sorted directions
     fn from_dirs(dir1: &Dir, dir2: &Dir) -> Self {
         match (dir1, dir2) {
             (Dir::North, Dir::East) => Pipe::NorthEast,
@@ -90,12 +79,33 @@ impl Pipe {
             (Dir::East, Dir::South) => Pipe::EastSouth,
             (Dir::East, Dir::West) => Pipe::EastWest,
             (Dir::South, Dir::West) => Pipe::SouthWest,
-            _ => unreachable!(),
+            _ => unimplemented!("sort the dirs"),
         }
+    }
+
+    /// Does the pipe lead to the north
+    fn north(&self) -> bool {
+        matches!(self, Pipe::NorthEast | Pipe::NorthSouth | Pipe::NorthWest)
+    }
+
+    /// Does the pipe lead to the east
+    fn east(&self) -> bool {
+        matches!(self, Pipe::NorthEast | Pipe::EastSouth | Pipe::EastWest)
+    }
+
+    /// Does the pipe lead to the south
+    fn south(&self) -> bool {
+        matches!(self, Pipe::NorthSouth | Pipe::EastSouth | Pipe::SouthWest)
+    }
+
+    /// Does the pipe lead to the west
+    fn west(&self) -> bool {
+        matches!(self, Pipe::NorthWest | Pipe::EastWest | Pipe::SouthWest)
     }
 }
 
 impl std::fmt::Display for Pipe {
+    /// Prettier ASCII representation
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Pipe::NorthEast => write!(f, "└"),
@@ -108,6 +118,7 @@ impl std::fmt::Display for Pipe {
     }
 }
 
+/// Create a map of the tiles in the grid, with their coordinates as key.
 #[allow(clippy::cast_possible_wrap)]
 fn get_grid_hashmap(grid: &[Vec<Tile>]) -> HashMap<Point, &Tile> {
     grid.iter()
@@ -126,6 +137,7 @@ fn get_grid_hashmap(grid: &[Vec<Tile>]) -> HashMap<Point, &Tile> {
         .collect()
 }
 
+/// Find all the coordinates that belong to the loop
 fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
     let mut pos: Point = grid
         .iter()
@@ -184,6 +196,34 @@ fn get_loop_positions(grid: &HashMap<Point, &Tile>) -> HashSet<Point> {
     pipes
 }
 
+/// Get the corresponding pipe tile for the starting position
+fn convert_start_pipe(grid: &HashMap<Point, &Tile>) -> (Point, Tile) {
+    let (start_pos, _) = grid
+        .iter()
+        .find(|(_, &t)| matches!(t, Tile::Start))
+        .unwrap();
+    let (dir1, dir2): (&Dir, &Dir) = DIRS
+        .iter()
+        .filter(|dir| {
+            let pos = start_pos.at_dir(dir);
+            match grid.get(&pos) {
+                Some(Tile::Pipe(pipe)) => match (dir, pipe) {
+                    (Dir::North, p) if p.south() => true,
+                    (Dir::East, p) if p.west() => true,
+                    (Dir::South, p) if p.north() => true,
+                    (Dir::West, p) if p.east() => true,
+                    _ => false,
+                },
+                _ => false,
+            }
+        })
+        .sorted()
+        .collect_tuple()
+        .unwrap();
+    let start_pipe = Pipe::from_dirs(dir1, dir2);
+    (start_pos.clone(), Tile::Pipe(start_pipe))
+}
+
 impl Day for Day10 {
     type Input = Vec<Vec<Tile>>;
 
@@ -214,13 +254,13 @@ impl Day for Day10 {
     #[allow(clippy::cast_possible_wrap, clippy::too_many_lines)]
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let grid = get_grid_hashmap(input);
-        let pipes = get_loop_positions(&grid);
-        pipes.len() / 2
+        let loop_pipes = get_loop_positions(&grid);
+        loop_pipes.len() / 2
     }
 
     type Output2 = usize;
 
-    /// Part 2 took 3.7294ms (without drawing)
+    /// Part 2 took 3.7294ms (without printing)
     #[allow(
         clippy::too_many_lines,
         clippy::cast_possible_wrap,
@@ -228,35 +268,11 @@ impl Day for Day10 {
     )]
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let mut grid = get_grid_hashmap(input);
-        let pipes = get_loop_positions(&grid);
+        let loop_pipes = get_loop_positions(&grid);
 
         // replace starting tile by the corresponding pipe
-        let (start_pos, _) = grid
-            .iter()
-            .find(|(_, &t)| matches!(t, Tile::Start))
-            .unwrap();
-        // find the two directions the starting pipe is connected to
-        let (dir1, dir2): (&Dir, &Dir) = DIRS
-            .iter()
-            .filter(|dir| {
-                let pos = start_pos.at_dir(dir);
-                match grid.get(&pos) {
-                    Some(Tile::Pipe(pipe)) => match (dir, pipe) {
-                        (Dir::North, p) if p.south() => true,
-                        (Dir::East, p) if p.west() => true,
-                        (Dir::South, p) if p.north() => true,
-                        (Dir::West, p) if p.east() => true,
-                        _ => false,
-                    },
-                    _ => false,
-                }
-            })
-            .sorted()
-            .collect_tuple()
-            .unwrap();
-        let start_pipe = Pipe::from_dirs(dir1, dir2);
-        let start_tile = Tile::Pipe(start_pipe);
-        grid.insert(start_pos.clone(), &start_tile);
+        let (start_pos, start_tile) = convert_start_pipe(&grid);
+        grid.insert(start_pos, &start_tile); // replaces the original start tile
 
         let size_y = input.len() as isize;
         let size_x = input.first().unwrap().len() as isize;
@@ -281,9 +297,9 @@ impl Day for Day10 {
                 } else {
                     Style::new().blue()
                 };
-                if pipes.contains(&pos) {
+                if loop_pipes.contains(&pos) {
                     let Tile::Pipe(pipe) = tile else {
-                        unreachable!("pipe loop contains tile that is not a pipe");
+                        unreachable!("pipe loop only contains pipes");
                     };
                     if pipe.north() || pipe.south() {
                         if pipe.north() && pipe.south() {

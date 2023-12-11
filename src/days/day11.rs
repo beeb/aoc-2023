@@ -61,7 +61,7 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> HashSet<Point> {
         .collect_vec();
 
     // adjust the coordinates to reflect the expansion of empty cols and rows
-    let mut adjusted_galaxies = HashSet::new();
+    let mut galaxies = HashSet::new();
     for g in original_galaxies {
         // how many rows and columns are empty above and to the left of this galaxy?
         let empty_rows_above = empty_rows
@@ -74,13 +74,13 @@ fn get_galaxies(input: &[Vec<char>], expansion: isize) -> HashSet<Point> {
             .count() as isize;
         // for an expansion of two, we double each empty col/row
         // so we add their number multiplied by expansion - 1 to the respective coordinates
-        adjusted_galaxies.insert(Point(
+        galaxies.insert(Point(
             g.0 + empty_cols_left * (expansion - 1),
             g.1 + empty_rows_above * (expansion - 1),
         ));
     }
 
-    adjusted_galaxies
+    galaxies
 }
 
 impl Day for Day11 {

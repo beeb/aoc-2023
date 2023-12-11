@@ -95,6 +95,7 @@ impl Day for Day11 {
 
     type Output1 = isize;
 
+    /// Part 1 took 188.702µs
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let galaxies = get_galaxies(input, 2);
         galaxies
@@ -106,6 +107,7 @@ impl Day for Day11 {
 
     type Output2 = isize;
 
+    /// Part 2 took 163.335µs
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let expansion = if cfg!(test) { 10 } else { 1_000_000 };
         let galaxies = get_galaxies(input, expansion);

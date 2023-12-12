@@ -40,7 +40,7 @@ fn parse_groups(input: &str) -> IResult<&str, Vec<usize>> {
     separated_list1(char(','), map(u64, |n| n as usize))(input)
 }
 
-/// How many solutions are there, considering a subset of the hotsprings and groups
+/// How many solutions are there, considering a subset of the hotsprings and groups where we skip items at the beggining
 ///
 /// Solved recursively and caching results
 fn count_solutions<'a>(

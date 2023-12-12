@@ -42,7 +42,7 @@ fn parse_groups(input: &str) -> IResult<&str, Vec<usize>> {
 
 /// How many solutions are there, considering a subset of the hotsprings and groups where we skip items at the beggining
 ///
-/// Solved recursively and caching results
+/// Solved recursively and caching results (dynamic programming)
 fn count_solutions<'a>(
     cache: &mut HashMap<(&'a [HotSpring], &'a [usize]), usize>,
     springs: &'a [HotSpring],

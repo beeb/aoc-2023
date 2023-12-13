@@ -43,43 +43,60 @@ fn parse_pattern(input: &str) -> IResult<&str, Vec<Vec<Tile>>> {
     )(input)
 }
 
+/// Find the honrizontal axis that splits the pattern into two vertical mirror images
+///
+/// In the second part, we want to look for patterns which have exactly 1 difference in the reflection
 fn find_vertical_mirror(pattern: &[Vec<Tile>], smudge: bool) -> Option<usize> {
-    // key = number of diverging tiles, value = x
+    // Storing all potential candidates: key = number of diverging tiles, value = x coordinate
     let mut res = HashMap::<usize, usize>::new();
-    let w = pattern[0].len();
-    let mut x = 1;
-    while x < w {
-        let mut symmetrical = true;
-        let mut total_diverging = 0;
+    let width = pattern[0].len();
+    let mut x = 1; // to have symmetry, we must have at least 1 col on the left
+    while x < width {
+        let mut symmetrical = true; // we asssume symmetrical until proven otherwise
+        let mut total_diverging = 0; // how many tiles are different between the two halves
         for row in pattern {
             let (left, right) = row.split_at(x);
+            // iterate through both halves at the same time, starting at the candidate symmetry axis.
+            // count how many tiles are different between the two halves
             let diverging = right
                 .iter()
                 .zip(left.iter().rev())
                 .filter(|(a, b)| a != b)
                 .count();
+            // if diverging > 1, it's not possible that this symmetry axis interests us
             if diverging > 1 {
-                // not symmetrical, let's look at the next vertical position
-                x += 1;
+                // not symmetrical, we can stop looking at further rows
                 symmetrical = false;
                 break;
             }
+            // we could potentially have a symmetry axis, but only if the total_diverging is 0 or 1 at the very end
             total_diverging += diverging;
         }
-        if symmetrical {
-            res.insert(total_diverging, x);
+        if !symmetrical {
+            // let's keep looking
             x += 1;
+            continue;
         }
+        if total_diverging <= 1 {
+            // we found no evidence of non-symmetry, so let's record our candidate
+            res.insert(total_diverging, x);
+        }
+        // let's keep looking
+        x += 1;
     }
     if smudge {
+        // we are looking for exactly 1 tile of difference
         res.get(&1).copied()
     } else {
         res.get(&0).copied()
     }
 }
 
+/// Find the vertical axis that splits the pattern into two horizontal mirror images
+///
+/// In the second part, we want to look for patterns which have exactly 1 difference in the reflection
 fn find_horizontal_mirror(pattern: &[Vec<Tile>], smudge: bool) -> Option<usize> {
-    // key = number of diverging tiles, value = y
+    // same implementation as above
     let mut res = HashMap::<usize, usize>::new();
     let w = pattern[0].len();
     let h = pattern.len();
@@ -87,6 +104,7 @@ fn find_horizontal_mirror(pattern: &[Vec<Tile>], smudge: bool) -> Option<usize> 
     while y < h {
         let mut symmetrical = true;
         let mut total_diverging = 0;
+        // we iterate over the columns this time
         for col in (0..w).map(|x| pattern.iter().map(|row| row[x]).collect_vec()) {
             let (top, bottom) = col.split_at(y);
             let diverging = bottom
@@ -95,17 +113,19 @@ fn find_horizontal_mirror(pattern: &[Vec<Tile>], smudge: bool) -> Option<usize> 
                 .filter(|(a, b)| a != b)
                 .count();
             if diverging > 1 {
-                // not symmetrical, let's look at the next vertical position
-                y += 1;
                 symmetrical = false;
                 break;
             }
             total_diverging += diverging;
         }
-        if symmetrical {
-            res.insert(total_diverging, y);
+        if !symmetrical {
             y += 1;
+            continue;
         }
+        if total_diverging <= 1 {
+            res.insert(total_diverging, y);
+        }
+        y += 1;
     }
     if smudge {
         res.get(&1).copied()
@@ -123,6 +143,7 @@ impl Day for Day13 {
 
     type Output1 = usize;
 
+    /// Part 1 took 153.5µs
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .iter()
@@ -132,7 +153,7 @@ impl Day for Day13 {
                 } else if let Some(axis) = find_vertical_mirror(pattern, false) {
                     axis
                 } else {
-                    0
+                    unreachable!("all patterns must have symmetry")
                 }
             })
             .sum()
@@ -140,6 +161,7 @@ impl Day for Day13 {
 
     type Output2 = usize;
 
+    /// Part 2 took 142µs
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input
             .iter()
@@ -149,7 +171,7 @@ impl Day for Day13 {
                 } else if let Some(axis) = find_vertical_mirror(pattern, true) {
                     axis
                 } else {
-                    0
+                    unreachable!("all patterns must have symmetry")
                 }
             })
             .sum()

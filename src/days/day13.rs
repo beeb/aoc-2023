@@ -98,14 +98,14 @@ fn find_vertical_mirror(pattern: &[Vec<Tile>], smudge: bool) -> Option<usize> {
 fn find_horizontal_mirror(pattern: &[Vec<Tile>], smudge: bool) -> Option<usize> {
     // same implementation as above
     let mut res = HashMap::<usize, usize>::new();
-    let w = pattern[0].len();
-    let h = pattern.len();
+    let width = pattern[0].len();
+    let height = pattern.len();
     let mut y = 1;
-    while y < h {
+    while y < height {
         let mut symmetrical = true;
         let mut total_diverging = 0;
         // we iterate over the columns this time
-        for col in (0..w).map(|x| pattern.iter().map(|row| row[x]).collect_vec()) {
+        for col in (0..width).map(|x| pattern.iter().map(|row| row[x]).collect_vec()) {
             let (top, bottom) = col.split_at(y);
             let diverging = bottom
                 .iter()

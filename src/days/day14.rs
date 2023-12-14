@@ -179,7 +179,7 @@ impl Day for Day14 {
                     .sorted_by(|(_, a), (_, &b)| b.cmp(a))
                     .find(|(_, &ii)| ii % modulo == target)
                     .unwrap();
-                platform.grid = elem.0.clone();
+                platform.grid = elem.0.clone(); // restore the state
                 break;
             }
             cache.insert(platform.grid.clone(), i);

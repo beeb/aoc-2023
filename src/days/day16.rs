@@ -182,22 +182,6 @@ impl Day for Day16 {
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let beams = get_beams(input, Point { x: 0, y: 0 }, Dir::Right);
-        /* for y in 0..input.height {
-            for x in 0..input.width {
-                if beams
-                    .get(&Point {
-                        x: x as isize,
-                        y: y as isize,
-                    })
-                    .is_some()
-                {
-                    print!("#");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        } */
         beams.len()
     }
 

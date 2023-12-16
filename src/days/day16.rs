@@ -263,9 +263,9 @@ mod tests {
         assert_eq!(Day16::part_1(&parsed), 46);
     }
 
-    /*     #[test]
+    #[test]
     fn test_part2() {
-        let parsed = Day15::parse(INPUT).unwrap().1;
-        assert_eq!(Day15::part_2(&parsed), 145);
-    } */
+        let parsed = Day16::parse(INPUT).unwrap().1;
+        assert_eq!(Day16::part_2(&parsed), 51);
+    }
 }

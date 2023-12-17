@@ -7,10 +7,12 @@ authors = ["Valentin Bersier <hi@beeb.li>"]
 [dependencies]
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
+colorous = "1.0.12"
 itertools = "0.12"
 nom = "7"
-num = "0.4.1"
-owo-colors = "3.5.0"
+num = "0.4"
+owo-colors = "3"
+pathfinding = "4"
 reqwest = { version = "0.11", default-features = false, features = [
     "blocking",
     "rustls-tls",

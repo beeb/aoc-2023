@@ -283,14 +283,7 @@ fn print_path(path: &[Candidate], grid: &[Vec<i64>]) {
                         .truecolor(255, 255, 255)
                 );
             } else {
-                print!(
-                    "{}",
-                    char::from_digit(*value as u32, 10)
-                        .unwrap()
-                        .to_string()
-                        .on_truecolor(color.r, color.g, color.b)
-                        .truecolor(0, 0, 0)
-                );
+                print!("{}", " ".on_truecolor(color.r, color.g, color.b));
             }
         }
         println!();
@@ -335,7 +328,7 @@ impl Day for Day17 {
             |c| c.x == goal.x && c.y == goal.y,
         )
         .unwrap();
-        //print_path(&result.0, input);
+        print_path(&result.0, input);
         result.1
     }
 
@@ -360,7 +353,7 @@ impl Day for Day17 {
             |c| c.x == goal.x && c.y == goal.y,
         )
         .unwrap();
-        //print_path(&result.0, input);
+        print_path(&result.0, input);
         result.1
     }
 }

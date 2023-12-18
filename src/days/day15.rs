@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use itertools::Itertools;
 use nom::{
     character::complete::{alpha1, char, none_of, one_of, u8},
@@ -90,9 +88,9 @@ impl Day for Day15 {
         // parse the input strings into instructions
         let instructions = input.iter().map(|s| Instruction::new(s)).collect_vec();
         // initialize the boxes with empty VecDeque's
-        let mut boxes: Vec<VecDeque<Lens>> = Vec::with_capacity(256);
+        let mut boxes: Vec<Vec<Lens>> = Vec::with_capacity(256);
         for _ in 0..256 {
-            boxes.push(VecDeque::new());
+            boxes.push(Vec::new());
         }
         // process all instructions
         for instr in instructions {
@@ -103,19 +101,16 @@ impl Day for Day15 {
                     b.retain(|l| l.label != instr.label);
                 }
                 // when adding, check if there is a lens with the same label already
-                Action::Add(focal) => match b.iter().position(|l| l.label == instr.label) {
-                    Some(pos) => {
+                Action::Add(focal) => match b.iter_mut().find(|l| l.label == instr.label) {
+                    Some(lens) => {
                         // we have a lens with the same label
-                        // replace the lens at the position by first adding it at the back, then swapping with the one
-                        // to replace, and finally removing the old item from the back.
-                        b.push_back(Lens {
+                        // replace the lens at the position
+                        *lens = Lens {
                             label: instr.label.clone(),
                             focal,
-                        });
-                        b.swap(pos, b.len() - 1);
-                        b.pop_back();
+                        };
                     }
-                    None => b.push_back(Lens {
+                    None => b.push(Lens {
                         label: instr.label.clone(),
                         focal,
                     }),

@@ -331,7 +331,7 @@ impl Day for Day19 {
 
     type Output2 = u64;
 
-    /// Part 2 took 3.621947ms
+    /// Part 2 took 2.352422ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let (workflows, _) = input;
         combinations(

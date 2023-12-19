@@ -120,7 +120,7 @@ fn combinations(
     a: GenericRange<u64>,
     s: GenericRange<u64>,
 ) -> u64 {
-    // make our input ranges mutable
+    // get mutable copies of our input ranges
     let (mut x, mut m, mut a, mut s) = (x, m, a, s);
     let workflow = workflows.get(workflow).unwrap();
     // sum of all combinations

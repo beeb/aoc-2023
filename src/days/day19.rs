@@ -29,6 +29,8 @@ pub enum Action {
     Rejected,
 }
 
+/// A condition, either greater than or less than, with the first item being the parameter (x, m, a or s) and second
+/// being the value to use for the comparison
 #[derive(Debug, Clone, Copy)]
 pub enum Condition {
     Lt(char, u64),
@@ -48,16 +50,21 @@ pub struct Workflow {
 }
 
 impl Part {
+    /// Sum of the four parameters
     fn score(&self) -> u64 {
         self.x + self.m + self.a + self.s
     }
 }
 
+/// Check if a part is accepted after being processed by all the workflows
 fn is_part_accepted(workflow: &str, part: &Part, workflows: &HashMap<String, Workflow>) -> bool {
     let workflow = workflows.get(workflow).unwrap();
+    // apply each rule until the part is accepted or rejected
     for rule in &workflow.rules {
+        // check if there is a condition, and if yes, whether it's true
         let cond_true = match rule.cond {
             Some(cond) => match cond {
+                // condider on which value we need to branch and perform the comparison
                 Condition::Lt(param, value) => match param {
                     'x' => part.x < value,
                     'm' => part.m < value,
@@ -73,11 +80,13 @@ fn is_part_accepted(workflow: &str, part: &Part, workflows: &HashMap<String, Wor
                     _ => unimplemented!(),
                 },
             },
+            // when no condition, it's always true
             None => true,
         };
         if cond_true {
+            // in case the condition was matched (or we are at the last rule), then categorize accordingly
             return match &rule.action {
-                Action::Goto(w) => is_part_accepted(w, part, workflows),
+                Action::Goto(w) => is_part_accepted(w, part, workflows), // recursively find out if accepted
                 Action::Accepted => true,
                 Action::Rejected => false,
             };
@@ -86,6 +95,7 @@ fn is_part_accepted(workflow: &str, part: &Part, workflows: &HashMap<String, Wor
     false
 }
 
+/// Calculate the overlap of two ranges, returning an empty range if none
 fn range_overlap(a: GenericRange<u64>, b: GenericRange<u64>) -> GenericRange<u64> {
     match a & b {
         OperationResult::Empty | OperationResult::Double(_, _) => GenericRange::from(0..0),
@@ -93,10 +103,14 @@ fn range_overlap(a: GenericRange<u64>, b: GenericRange<u64>) -> GenericRange<u64
     }
 }
 
+/// Calculate how many values are in a range
 fn len(range: GenericRange<u64>) -> u64 {
     range.into_iter().count() as u64
 }
 
+/// Check how many combinations of values are accepted considering the set of workflows
+///
+/// Ranges for each parameter are passed to the function, and are initialized at 1..=4000
 #[allow(clippy::too_many_lines)]
 fn combinations(
     workflow: &str,
@@ -106,14 +120,17 @@ fn combinations(
     a: GenericRange<u64>,
     s: GenericRange<u64>,
 ) -> u64 {
+    // make our input ranges mutable
     let (mut x, mut m, mut a, mut s) = (x, m, a, s);
     let workflow = workflows.get(workflow).unwrap();
+    // sum of all combinations
     let mut sum: u64 = 0;
     for rule in &workflow.rules {
         // first set for "true" condition, second set for "false"
-        #[allow(clippy::single_match_else)]
-        let (x1, m1, a1, s1, x2, m2, a2, s2) = match rule.cond {
-            Some(cond) => match cond {
+        let (x1, m1, a1, s1, x2, m2, a2, s2) = if let Some(cond) = rule.cond {
+            match cond {
+                // check the overlap between the acceptable range, and the range that was filtered in previous steps
+                // we return two disjoint ranges, one if the condition was true, the other if it was false
                 Condition::Lt(param, value) => match param {
                     'x' => (
                         range_overlap(x, GenericRange::new_less_than(value)),
@@ -200,24 +217,26 @@ fn combinations(
                     ),
                     _ => unimplemented!(),
                 },
-            },
-            None => {
-                let comb = match &rule.action {
-                    Action::Goto(wf) => combinations(wf, workflows, x, m, a, s),
-                    Action::Accepted => len(x) * len(m) * len(a) * len(s),
-                    Action::Rejected => 0,
-                };
-                sum += comb;
-                continue;
             }
+        } else {
+            // we had no condition, so we are at the last filter and simply consider each case
+            let comb = match &rule.action {
+                Action::Goto(wf) => combinations(wf, workflows, x, m, a, s),
+                Action::Accepted => len(x) * len(m) * len(a) * len(s),
+                Action::Rejected => 0,
+            };
+            sum += comb;
+            break;
         };
         // here we had a condition so we split into two range sets
+        // the first set is for when the condition was true and we process with the rule's action
         let true_comb = match &rule.action {
             Action::Goto(wf) => combinations(wf, workflows, x1, m1, a1, s1),
             Action::Accepted => len(x1) * len(m1) * len(a1) * len(s1),
             Action::Rejected => 0,
         };
         sum += true_comb;
+        // the second set continues to get processed by the following rules
         (x, m, a, s) = (x2, m2, a2, s2);
     }
     sum
@@ -312,6 +331,7 @@ impl Day for Day19 {
 
     type Output2 = u64;
 
+    /// Part 2 took 3.621947ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let (workflows, _) = input;
         combinations(

@@ -123,8 +123,8 @@ impl Day for Day21 {
     /// unreachable in the center tile (those reachable with an even number of steps when considering the center tile).
     /// So, we count how many positions are reached by an even or odd number of steps in a tile.
     /// In the example above, we would have 1 full tile with odd positions (the center one), 4 tiles with even positions
-    /// (the ones labelled "E"), and then a bunch of incomplete tiles with odd positions. We can calculate how many
-    /// positions lie in those corners and subtract them in our final calculation.
+    /// (the ones labelled "E"), then a bunch of incomplete tiles with odd positions, then a few stray corners of even
+    /// tiles. We can calculate how many positions lie in those corners and subtract them in our final calculation.
     /// Note that the "O" incomplete tiles are missing overall 12 corners, that amount to 3 full "O" tiles for the
     /// example above. Likewise, we have 8 orphan corners for the even tiles on the outside, that make up 2 full "E"
     /// tiles.

@@ -44,41 +44,6 @@ impl Brick {
             Dir::Z
         }
     }
-
-    fn supporting_voxels(&self, grid: &BTreeSet<Voxel>) -> Vec<Voxel> {
-        if self.begin.z <= 1 {
-            return vec![];
-        }
-        match self.dir() {
-            Dir::Z => {
-                let below = Voxel {
-                    x: self.begin.x,
-                    y: self.begin.y,
-                    z: self.begin.z - 1,
-                };
-                if grid.contains(&below) {
-                    vec![below]
-                } else {
-                    vec![]
-                }
-            }
-            Dir::X | Dir::Y => self
-                .into_iter()
-                .filter_map(|v| {
-                    let below = Voxel {
-                        x: v.x,
-                        y: v.y,
-                        z: v.z - 1,
-                    };
-                    if grid.contains(&below) {
-                        Some(below)
-                    } else {
-                        None
-                    }
-                })
-                .collect_vec(),
-        }
-    }
 }
 
 pub struct BrickIntoIterator {
@@ -171,7 +136,7 @@ fn parse_voxel(input: &str) -> IResult<&str, Voxel> {
 //     println!("-----------------");
 // }
 
-fn settle(bricks: &mut Vec<Brick>, grid: &mut BTreeSet<Voxel>) {
+fn settle(bricks: &mut [Brick], grid: &mut BTreeSet<Voxel>) {
     for brick in bricks.iter_mut() {
         let move_z = (1..1000)
             .take_while(|i| match brick.dir() {
@@ -261,11 +226,11 @@ fn get_graph<'a>(
                             .skip_while(|b| b.begin.z < above.z)
                             .find(|b| b.into_iter().any(|v| v.x == above.x && v.y == above.y))
                             .unwrap();
-                        supports.add_edge(
-                            *node_indices.get(brick).unwrap(),
-                            *node_indices.get(other).unwrap(),
-                            (),
-                        );
+                        let a = *node_indices.get(brick).unwrap();
+                        let b = *node_indices.get(other).unwrap();
+                        if !supports.contains_edge(a, b) {
+                            supports.add_edge(a, b, ());
+                        }
                     }
                 }
             }
@@ -296,59 +261,23 @@ impl Day for Day22 {
         for brick in &bricks {
             grid.extend(brick.into_iter());
         }
+
         settle(&mut bricks, &mut grid);
-        let mut can_disintegrate = 0;
-        'outer: for brick in &bricks {
-            match brick.dir() {
-                Dir::Z => {
-                    let above = Voxel {
-                        x: brick.end.x,
-                        y: brick.end.y,
-                        z: brick.end.z + 1,
-                    };
-                    if grid.contains(&above) {
-                        // find which brick it belongs to
-                        let other = bricks
-                            .iter()
-                            .skip_while(|b| b.begin.z < above.z)
-                            .find(|b| b.into_iter().any(|v| v.x == above.x && v.y == above.y))
-                            .unwrap();
-                        let supporting = other.supporting_voxels(&grid);
-                        if supporting.len() > 1 {
-                            // supported by other bricks, ok to remove
-                            can_disintegrate += 1;
-                        }
-                    } else {
-                        can_disintegrate += 1;
-                    }
-                }
-                Dir::X | Dir::Y => {
-                    let voxels = brick.into_iter().collect_vec();
-                    for voxel in &voxels {
-                        let above = Voxel {
-                            x: voxel.x,
-                            y: voxel.y,
-                            z: voxel.z + 1,
-                        };
-                        if grid.contains(&above) {
-                            // find which brick it belongs to
-                            let other = bricks
-                                .iter()
-                                .skip_while(|b| b.begin.z < above.z)
-                                .find(|b| b.into_iter().any(|v| v.x == above.x && v.y == above.y))
-                                .unwrap();
-                            let supporting = other.supporting_voxels(&grid);
-                            if supporting.iter().all(|v| voxels.contains(v)) {
-                                continue 'outer; // next brick
-                            }
-                            // supported by other bricks
-                        }
-                    }
-                    can_disintegrate += 1;
-                }
-            }
-        }
-        can_disintegrate
+        let (supports, node_indices) = get_graph(&bricks, &grid);
+
+        // println!("{:?}", Dot::with_config(&supports, &[Config::EdgeNoLabel]));
+
+        node_indices
+            .iter()
+            .filter(|(_, &brick_idx)| {
+                supports
+                    .neighbors_directed(brick_idx, Direction::Outgoing)
+                    .all(|child| {
+                        let parents = supports.edges_directed(child, Direction::Incoming).count();
+                        parents > 1
+                    })
+            })
+            .count()
     }
 
     type Output2 = usize;

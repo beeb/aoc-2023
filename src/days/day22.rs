@@ -35,6 +35,7 @@ pub struct Brick {
 }
 
 impl Brick {
+    /// Since bricks are a single row of blocks, we can define a main direction
     fn dir(&self) -> Dir {
         if self.begin.x != self.end.x {
             Dir::X
@@ -46,6 +47,7 @@ impl Brick {
     }
 }
 
+/// Iterator over the blocks of a brick
 pub struct BrickIntoIterator {
     brick: Brick,
     dir: Dir,
@@ -69,6 +71,7 @@ impl IntoIterator for Brick {
 impl Iterator for BrickIntoIterator {
     type Item = Voxel;
 
+    /// Get the next voxel (block) in a brick iterator
     fn next(&mut self) -> Option<Self::Item> {
         let curr = self.current;
         if curr > self.brick.end {
@@ -136,10 +139,14 @@ fn parse_voxel(input: &str) -> IResult<&str, Voxel> {
 //     println!("-----------------");
 // }
 
+/// Make the bricks fall
 fn settle(bricks: &mut [Brick], grid: &mut BTreeSet<Voxel>) {
     for brick in bricks.iter_mut() {
+        // Check how far we can move down on the Z axis before reaching an obstacle
+        // We start at an offset of 1 and continue until an obstacle is reached
         let move_z = (1..1000)
             .take_while(|i| match brick.dir() {
+                // for a vertical brick, we only need to consider the "begin" voxel
                 Dir::Z => {
                     let Some(new_z) = brick.begin.z.checked_sub(*i) else {
                         return false;
@@ -153,6 +160,7 @@ fn settle(bricks: &mut [Brick], grid: &mut BTreeSet<Voxel>) {
                         z: new_z,
                     })
                 }
+                // for horizontal bricks, we need to check how far can each block go
                 Dir::X | Dir::Y => brick.into_iter().all(|v| {
                     let Some(new_z) = v.z.checked_sub(*i) else {
                         return false;
@@ -168,6 +176,7 @@ fn settle(bricks: &mut [Brick], grid: &mut BTreeSet<Voxel>) {
                 }),
             })
             .count();
+        // shift the brick down by the calculated amount, reflecting the changes in the global grid
         for voxel in brick.into_iter() {
             grid.remove(&voxel);
         }
@@ -175,22 +184,29 @@ fn settle(bricks: &mut [Brick], grid: &mut BTreeSet<Voxel>) {
         brick.end.z -= move_z;
         grid.extend(brick.into_iter());
     }
+    // Sort the bricks so we can still iterate from low-Z to high-Z
     bricks.sort();
 }
 
+/// Create a graph where the nodes are bricks, and the edges represent "support". If a brick has contact to a brick
+/// one layer up, then a directed edge joins them (from bottom brick to to brick).
 fn get_graph<'a>(
     bricks: &'a [Brick],
     grid: &'a BTreeSet<Voxel>,
 ) -> (Graph<&'a Brick, ()>, HashMap<&'a Brick, NodeIndex>) {
-    let mut supports = Graph::<&Brick, ()>::new();
+    let mut graph = Graph::<&Brick, ()>::new();
     let mut node_indices = HashMap::<&Brick, NodeIndex>::new();
+    // add all brick references to the graph as nodes
     for brick in bricks {
-        let idx = supports.add_node(brick);
+        let idx = graph.add_node(brick);
         node_indices.insert(brick, idx);
     }
+    // for each brick, check the blocks above, identify which brick they belong to, and create the edges
     for brick in bricks {
         match brick.dir() {
+            // for vertical bricks, we only need to consider the "end" block
             Dir::Z => {
+                // check if the block above is populated
                 let above = Voxel {
                     x: brick.end.x,
                     y: brick.end.y,
@@ -204,14 +220,16 @@ fn get_graph<'a>(
                         .find(|b| b.into_iter().any(|v| v.x == above.x && v.y == above.y))
                         .unwrap();
 
-                    supports.add_edge(
+                    graph.add_edge(
                         *node_indices.get(brick).unwrap(),
                         *node_indices.get(other).unwrap(),
                         (),
                     );
                 }
             }
+            // for horizontal bricks, we consider each block
             Dir::X | Dir::Y => {
+                // check if the blocks above are populated
                 let voxels = brick.into_iter().collect_vec();
                 for voxel in &voxels {
                     let above = Voxel {
@@ -228,15 +246,16 @@ fn get_graph<'a>(
                             .unwrap();
                         let a = *node_indices.get(brick).unwrap();
                         let b = *node_indices.get(other).unwrap();
-                        if !supports.contains_edge(a, b) {
-                            supports.add_edge(a, b, ());
+                        if !graph.contains_edge(a, b) {
+                            // only add an edge if one is not already existing
+                            graph.add_edge(a, b, ());
                         }
                     }
                 }
             }
         }
     }
-    (supports, node_indices)
+    (graph, node_indices)
 }
 
 impl Day for Day22 {
@@ -267,6 +286,7 @@ impl Day for Day22 {
 
         // println!("{:?}", Dot::with_config(&supports, &[Config::EdgeNoLabel]));
 
+        // Check which bricks only have children with more than 1 parent (i.e. they would not move if removed)
         node_indices
             .iter()
             .filter(|(_, &brick_idx)| {

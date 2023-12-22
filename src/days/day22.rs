@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
 use itertools::Itertools;
 use nom::{
@@ -8,12 +8,13 @@ use nom::{
     sequence::{separated_pair, tuple},
     IResult,
 };
+use petgraph::prelude::*;
 
 use crate::days::Day;
 
 pub struct Day22;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Voxel {
     pub z: usize,
     pub x: usize,
@@ -27,7 +28,7 @@ pub enum Dir {
     Z,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Brick {
     pub begin: Voxel,
     pub end: Voxel,
@@ -143,32 +144,32 @@ fn parse_voxel(input: &str) -> IResult<&str, Voxel> {
     ))
 }
 
-fn print_bricks(grid: &BTreeSet<Voxel>) {
-    let max_z = grid.iter().map(|v| v.z).max().unwrap();
-    let max_x = grid.iter().map(|v| v.x).max().unwrap();
-    let max_y = grid.iter().map(|v| v.y).max().unwrap();
-    for z in (1..=max_z).rev() {
-        for x in 0..=max_x {
-            let count = grid.iter().filter(|v| v.x == x && v.z == z).count();
-            if count > 0 {
-                print!("{count}");
-            } else {
-                print!(".");
-            }
-        }
-        print!("   ");
-        for y in 0..=max_y {
-            let count = grid.iter().filter(|v| v.y == y && v.z == z).count();
-            if count > 0 {
-                print!("{count}");
-            } else {
-                print!(".");
-            }
-        }
-        println!();
-    }
-    println!("-----------------");
-}
+// fn print_bricks(grid: &BTreeSet<Voxel>) {
+//     let max_z = grid.iter().map(|v| v.z).max().unwrap();
+//     let max_x = grid.iter().map(|v| v.x).max().unwrap();
+//     let max_y = grid.iter().map(|v| v.y).max().unwrap();
+//     for z in (1..=max_z).rev() {
+//         for x in 0..=max_x {
+//             let count = grid.iter().filter(|v| v.x == x && v.z == z).count();
+//             if count > 0 {
+//                 print!("{count}");
+//             } else {
+//                 print!(".");
+//             }
+//         }
+//         print!("   ");
+//         for y in 0..=max_y {
+//             let count = grid.iter().filter(|v| v.y == y && v.z == z).count();
+//             if count > 0 {
+//                 print!("{count}");
+//             } else {
+//                 print!(".");
+//             }
+//         }
+//         println!();
+//     }
+//     println!("-----------------");
+// }
 
 fn settle(bricks: &mut Vec<Brick>, grid: &mut BTreeSet<Voxel>) {
     for brick in bricks.iter_mut() {
@@ -209,6 +210,68 @@ fn settle(bricks: &mut Vec<Brick>, grid: &mut BTreeSet<Voxel>) {
         brick.end.z -= move_z;
         grid.extend(brick.into_iter());
     }
+    bricks.sort();
+}
+
+fn get_graph<'a>(
+    bricks: &'a [Brick],
+    grid: &'a BTreeSet<Voxel>,
+) -> (Graph<&'a Brick, ()>, HashMap<&'a Brick, NodeIndex>) {
+    let mut supports = Graph::<&Brick, ()>::new();
+    let mut node_indices = HashMap::<&Brick, NodeIndex>::new();
+    for brick in bricks {
+        let idx = supports.add_node(brick);
+        node_indices.insert(brick, idx);
+    }
+    for brick in bricks {
+        match brick.dir() {
+            Dir::Z => {
+                let above = Voxel {
+                    x: brick.end.x,
+                    y: brick.end.y,
+                    z: brick.end.z + 1,
+                };
+                if grid.contains(&above) {
+                    // find which brick it belongs to
+                    let other = bricks
+                        .iter()
+                        .skip_while(|b| b.begin.z < above.z)
+                        .find(|b| b.into_iter().any(|v| v.x == above.x && v.y == above.y))
+                        .unwrap();
+
+                    supports.add_edge(
+                        *node_indices.get(brick).unwrap(),
+                        *node_indices.get(other).unwrap(),
+                        (),
+                    );
+                }
+            }
+            Dir::X | Dir::Y => {
+                let voxels = brick.into_iter().collect_vec();
+                for voxel in &voxels {
+                    let above = Voxel {
+                        x: voxel.x,
+                        y: voxel.y,
+                        z: voxel.z + 1,
+                    };
+                    if grid.contains(&above) {
+                        // find which brick it belongs to
+                        let other = bricks
+                            .iter()
+                            .skip_while(|b| b.begin.z < above.z)
+                            .find(|b| b.into_iter().any(|v| v.x == above.x && v.y == above.y))
+                            .unwrap();
+                        supports.add_edge(
+                            *node_indices.get(brick).unwrap(),
+                            *node_indices.get(other).unwrap(),
+                            (),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    (supports, node_indices)
 }
 
 impl Day for Day22 {
@@ -234,7 +297,6 @@ impl Day for Day22 {
             grid.extend(brick.into_iter());
         }
         settle(&mut bricks, &mut grid);
-        bricks.sort();
         let mut can_disintegrate = 0;
         'outer: for brick in &bricks {
             match brick.dir() {
@@ -291,8 +353,48 @@ impl Day for Day22 {
 
     type Output2 = usize;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    /// Part 2 took 15.0054ms
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let mut bricks = input.iter().sorted().copied().collect_vec();
+        let mut grid = BTreeSet::<Voxel>::new();
+        for brick in &bricks {
+            grid.extend(brick.into_iter());
+        }
+        settle(&mut bricks, &mut grid);
+        let (supports, node_indices) = get_graph(&bricks, &grid);
+
+        // println!("{:?}", Dot::with_config(&supports, &[Config::EdgeNoLabel]));
+
+        let mut total = 0;
+
+        // check how many bricks would fall for each brick that we would remove
+        for (_, brick_idx) in node_indices {
+            // BFS to visit all nodes starting at the considered brick
+            let mut falling = HashSet::<NodeIndex>::new();
+            let mut stack = VecDeque::<NodeIndex>::new();
+            stack.push_back(brick_idx);
+            while let Some(nx) = stack.pop_front() {
+                if !falling.insert(nx) {
+                    continue; // was already visited
+                }
+                // consider all of the children
+                for n in supports.neighbors_directed(nx, Direction::Outgoing) {
+                    // for this child, check if its parents would fall
+                    if !supports
+                        .neighbors_directed(n, Direction::Incoming)
+                        .all(|i| falling.contains(&i))
+                    {
+                        // one or more of its parents would not fall, so this child would not fall either
+                        continue;
+                    }
+                    // this child would fall too, let's mark it
+                    stack.push_back(n);
+                }
+            }
+            // since the start node (brick that we are considering) should not be counted, we subtract one
+            total += falling.len() - 1;
+        }
+        total
     }
 }
 
@@ -324,5 +426,10 @@ mod tests {
     fn test_part1() {
         let parsed = Day22::parse(INPUT).unwrap().1;
         assert_eq!(Day22::part_1(&parsed), 5);
+    }
+    #[test]
+    fn test_part2() {
+        let parsed = Day22::parse(INPUT).unwrap().1;
+        assert_eq!(Day22::part_2(&parsed), 7);
     }
 }

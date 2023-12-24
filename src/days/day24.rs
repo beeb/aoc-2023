@@ -155,7 +155,7 @@ impl Day for Day24 {
             vel_z.unwrap().into_iter().next().unwrap() as f64,
         );
 
-        // we can take any two hailstones and subtract the rock velotity to each to find two lines where our rock
+        // we can take any two hailstones and subtract the rock velocity to each to find two lines where our rock
         // starting position could lie. The intersection of the two lines is our rock starting position.
         let a = input.first().unwrap();
         let b = input.get(2).unwrap();

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use itertools::Itertools;
 use nom::{
     bytes::complete::tag,
@@ -6,7 +8,6 @@ use nom::{
     sequence::{separated_pair, tuple},
     IResult,
 };
-use num::integer::gcd;
 
 use crate::days::Day;
 
@@ -19,7 +20,7 @@ const AREA_MAX: f64 = if cfg!(test) {
 
 pub struct Day24;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct V3 {
     x: i64,
     y: i64,
@@ -32,34 +33,8 @@ pub struct HailStone {
     vel: V3,
 }
 
-impl V3 {
-    fn normalize(&self) -> V3 {
-        let gcd = [self.x, self.y, self.z]
-            .iter()
-            .fold(0, |acc, i| gcd(acc, *i));
-        V3 {
-            x: self.x / gcd,
-            y: self.y / gcd,
-            z: self.z / gcd,
-        }
-    }
-
-    #[allow(clippy::cast_precision_loss)]
-    fn is_parallel(&self, other: &Self) -> bool {
-        self.x as f64 * other.y as f64 - other.x as f64 * self.y as f64 == 0.
-    }
-}
-
 impl HailStone {
-    fn pos_after(&self, time: i64) -> V3 {
-        V3 {
-            x: self.pos.x + time * self.vel.x,
-            y: self.pos.y + time * self.vel.y,
-            z: self.pos.z + time * self.vel.z,
-        }
-    }
-
-    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::cast_precision_loss, clippy::similar_names)]
     fn intersection_with(&self, other: &HailStone) -> Option<(f64, f64)> {
         let (p1x, p1y, v1x, v1y) = (
             self.pos.x as f64,
@@ -128,15 +103,81 @@ impl Day for Day24 {
             .count()
     }
 
-    type Output2 = usize;
+    type Output2 = i64;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    /// Part 2 took 999.1µs
+    #[allow(
+        clippy::similar_names,
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation
+    )]
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        // let's find the velocity that our rock must have, by considering pairs of hailstones that have the same
+        // (large) velocity on one axis
+        let mut vel_x: Option<HashSet<i64>> = None;
+        let mut vel_y: Option<HashSet<i64>> = None;
+        let mut vel_z: Option<HashSet<i64>> = None;
+        for (a, b) in input.iter().tuple_combinations().filter(|(a, b)| {
+            (a.vel.x == b.vel.x && a.vel.x.abs() > 100)
+                || (a.vel.y == b.vel.y && a.vel.y.abs() > 100)
+                || (a.vel.z == b.vel.z && a.vel.z.abs() > 100)
+        }) {
+            // a and b go at the same velocity on at least one axis, so that means their distance on that axis is
+            // constant. Then, the velocity of the rock on that axis must satisfy: dist % (rock.vel - hail.vel) == 0
+            // in order for it to encounter both hailstones
+            let (dist, hailstone_vel, velocities) = match (a.vel.x == b.vel.x, a.vel.y == b.vel.y) {
+                (true, _) => (b.pos.x - a.pos.x, a.vel.x, &mut vel_x),
+                (false, true) => (b.pos.y - a.pos.y, a.vel.y, &mut vel_y),
+                (false, false) => (b.pos.z - a.pos.z, a.vel.z, &mut vel_z),
+            };
+            let mut candidates = HashSet::<i64>::new();
+            // let's check velocities in a realistic range that match the equation
+            for v in -1000..1000 {
+                if v == hailstone_vel {
+                    // would divide by zero
+                    continue;
+                }
+                if dist % (v - hailstone_vel) == 0 {
+                    candidates.insert(v);
+                }
+            }
+            // add the candidates to the set, or compute the intersection with previous candidates
+            if let Some(velocities) = velocities {
+                *velocities = velocities.intersection(&candidates).copied().collect();
+            } else {
+                *velocities = Some(candidates);
+            }
+        }
+        // we now know the velocity of the rock
+        let (rvx, rvy, rvz) = (
+            vel_x.unwrap().into_iter().next().unwrap() as f64,
+            vel_y.unwrap().into_iter().next().unwrap() as f64,
+            vel_z.unwrap().into_iter().next().unwrap() as f64,
+        );
+
+        // we can take any two hailstones and subtract the rock velotity to each to find two lines where our rock
+        // starting position could lie. The intersection of the two lines is our rock starting position.
+        let a = input.first().unwrap();
+        let b = input.get(2).unwrap();
+        // find intersection on X-Y
+        let ma = (a.vel.y as f64 - rvy) / (a.vel.x as f64 - rvx);
+        let mb = (b.vel.y as f64 - rvy) / (b.vel.x as f64 - rvx);
+        let ca = a.pos.y as f64 - (ma * a.pos.x as f64);
+        let cb = b.pos.y as f64 - (mb * b.pos.x as f64);
+        let rx = ((cb - ca) / (ma - mb)).round();
+        let ry = (ma * rx + ca).round();
+        // check at which time we intersect with a
+        let time = (rx - a.pos.x as f64) / (a.vel.x as f64 - rvx);
+        // what was the z position at time zero?
+        let rz = a.pos.z as f64 + (a.vel.z as f64 - rvz) * time;
+        rx as i64 + ry as i64 + rz as i64
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_relative_eq;
+
     use super::*;
 
     const INPUT: &str = "19, 13, 30 @ -2,  1, -2
@@ -174,8 +215,8 @@ mod tests {
             },
         };
         let (x, y) = a.intersection_with(&b).unwrap();
-        assert_eq!(x, 14.333333333333334);
-        assert_eq!(y, 15.333333333333332);
+        assert_relative_eq!(x, 14.333_333_333_333_334);
+        assert_relative_eq!(y, 15.333_333_333_333_332);
     }
 
     #[test]

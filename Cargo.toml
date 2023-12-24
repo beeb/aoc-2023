@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Valentin Bersier <hi@beeb.li>"]
 
 [dependencies]
+approx = "0.5.1"
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 colorous = "1.0.12"
